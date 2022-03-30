@@ -190,12 +190,12 @@ Commands["cd"]["Run"] = function(args)
 	if args.len > 0 then
 		if computer.File(args[0]) then
 			globals.currentFolder = computer.File(args[0]).path
+		else if computer.File(globals.currentFolder + "/" + args[0]) then
+			globals.currentFolder = computer.File(globals.currentFolder + "/"+args[0]).path
+		else if computer.File(globals.currentFolder + args[0]) then
+			globals.currentFolder = computer.File(globals.currentFolder + args[0]).path
 		else
-			if computer.File(globals.currentFolder + "/" + args[0]) then
-				globals.currentFolder = computer.File(globals.currentFolder + "/"+args[0]).path
-			else
-				return print("No such file or directory")
-			end if
+			return print("No such file or directory")
 		end if
 	end if
 	return globals.currentFolder
