@@ -16,13 +16,15 @@ globals.localFolder = current_path
 globals.localUser = active_user
 
 globals.currentObj = globals.localShell
-globals.currentComp = globals.localComputer
 globals.currentRouter = globals.localRouter
 globals.currentFolder = globals.localFolder
 globals.currentUser = globals.localUser
 
 globals.currentObjType = function()
 	return typeof(globals.currentObj)
+end function
+globals.currentComp = function()
+	if globals.currentObjType == "shell" then return globals.currentObj.host_computer else return globals.currentObj
 end function
 globals.currentPublicIp = function()
 	return globals.currentRouter.public_ip
@@ -42,6 +44,66 @@ Commands["help"]["Run"] = function(args)
 		output = output + "		" + CommandData.Name + " " + CommandData.Args.trim + " -> " + CommandData.Description+"\n"
 	end for
 	return print(output)
+end function
+
+Commands["re"] = {"Name": "re","Description": "Remote attack.","Args": "[ip] [port] [(opt) injectArg]","Shell":false}
+Commands["re"]["Run"] = function(args)
+	if args.len > 1 then
+		targetIp = args[0]
+		if not is_valid_ip(targetIp) then
+			if is_valid_ip(nslookup(targetIp)) then
+				targetIp = nslookup(targetIp)
+			else
+				return print("IP not found!")
+			end if
+		end if
+		targetPort = args[1].to_int
+		if typeof(targetPort) != "number" then return print("Port invalid.")
+		if args.len > 2 then injectArg = args[2] else injectArg = null
+		
+		netSession = metaxploit.net_use(targetIp, targetPort)
+		if typeof(netSession) != "NetSession" then return null
+		metaLib = netSession.dump_lib
+		
+		memorys = metaxploit.scan(metaLib)
+		
+		results = []
+		for memory in memorys
+			addresses = metaxploit.scan_address(metaLib, memory).split("Unsafe check:")
+			for address in addresses
+				if address == addresses[0] then continue
+				
+				value = address[address.indexOf("<b>")+3:address.indexOf("</b>")]
+				value = value.replace("\n", "")
+				if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value)
+				if typeof(result) != "shell" and typeof(result) != "computer" then continue
+				if typeof(result) == "shell" then computer = result.host_computer else computer = result
+
+				permTest = computer.File("/root")
+				perm = null
+				if permTest.has_permission("w") then
+					perm = "root"
+				else if permTest.has_permission("r") then
+					perm = "user"
+				else
+					perm = "guest"
+				end if
+				resultMap = {"perm": perm, "obj": result, "addr": memory, "vuln": value}
+				results.push(resultMap)
+			end for
+		end for
+		for result in results
+			print((results.indexOf(result) + 1) + "." + result.perm + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
+		end for
+		selectObj = user_input("select an object with number >").to_int
+		if typeof(selectObj) == "number" and selectObj <= results.len then
+			selectObj = selectObj - 1
+			globals.currentObj = results[selectObj].obj
+			globals.currentRouter = get_router(targetIp)
+			globals.currentFolder = "/"
+			globals.currentUser = results[selectObj].perm
+		end if
+	end if
 end function
 
 Commands["ps"] = {"Name": "ps","Description": "Shows the active processes of the operating system.","Args": "","Shell":false}
