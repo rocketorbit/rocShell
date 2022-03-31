@@ -10,10 +10,12 @@ if not cryptools then
 end if
 
 globals.localShell = get_shell
-globals.localComputer = localShell.host_computer
+globals.localComputer = globals.localShell.host_computer
 globals.localRouter = get_router
 globals.localFolder = current_path
 globals.localUser = active_user
+globals.localLanIp = globals.localComputer.local_ip
+globals.localPublicIp = globals.localRouter.public_ip
 
 globals.currentObj = globals.localShell
 globals.currentRouter = globals.localRouter
@@ -106,9 +108,58 @@ Commands["re"]["Run"] = function(args)
 	end if
 end function
 
+Commands["lo"] = {"Name": "lo","Description": "local attack. Must run this script from target terminal.","Args": "[lib_path] [(opt) injectArg]","Shell":false}
+Commands["lo"]["Run"] = function(args)
+	if (globals.currentLanIp != globals.localLanIp) or (globals.currentPublicIp != globals.localPublicIp) then return print("This command only works locally.")
+	if args.len > 0 then
+		targetPath = args[0]
+		if args.len > 1 then injectArg = args[1] else injectArg = null
+		targetFile = currentComp.File(targetPath)
+		if not targetFile then return print("No such file or directory")
+		metaLib = metaxploit.load(targetPath)
+		memorys = metaxploit.scan(metaLib)
+		results = []
+		for memory in memorys
+			addresses = metaxploit.scan_address(metaLib, memory).split("Unsafe check:")
+			for address in addresses
+				if address == addresses[0] then continue
+				
+				value = address[address.indexOf("<b>")+3:address.indexOf("</b>")]
+				value = value.replace("\n", "")
+				if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value)
+				if typeof(result) != "shell" and typeof(result) != "computer" then continue
+				if typeof(result) == "shell" then computer = result.host_computer else computer = result
+				
+				permTest = computer.File("/root")
+				perm = null
+				if permTest.has_permission("w") then
+					perm = "root"
+				else if permTest.has_permission("r") then
+					perm = "user"
+				else
+					perm = "guest"
+				end if
+				resultMap = {"perm": perm, "obj": result, "addr": memory, "vuln": value}
+				results.push(resultMap)
+			end for
+		end for
+		for result in results
+			print((results.indexOf(result) + 1) + "." + result.perm + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
+		end for
+		selectObj = user_input("select an object with number >").to_int
+		if typeof(selectObj) == "number" and selectObj <= results.len then
+			selectObj = selectObj - 1
+			globals.currentObj = results[selectObj].obj
+			globals.currentFolder = "/"
+			globals.currentUser = results[selectObj].perm
+			globals.currentRouter = globals.localRouter
+		end if
+	end if
+end function
+
 Commands["ps"] = {"Name": "ps","Description": "Shows the active processes of the operating system.","Args": "","Shell":false}
 Commands["ps"]["Run"] = function(args)
-	if currentObjType == "shell" then computer = globals.currentObj.host_computer else computer = globals.currentObj
+	computer = globals.currentComp
 
 	procs = computer.show_procs
 	procs = procs.split("\n")
@@ -186,7 +237,7 @@ end function
 
 Commands["cd"] = {"Name": "cd","Description": "Moves to a different directory.","Args": "[path]","Shell":false}
 Commands["cd"]["Run"] = function(args)
-	if globals.currentObjType == "shell" then computer = globals.currentObj.host_computer else computer = globals.currentObj
+	computer = globals.currentComp
 	if args.len > 0 then
 		if computer.File(args[0]) then
 			globals.currentFolder = computer.File(args[0]).path
@@ -203,7 +254,7 @@ end function
 
 Commands["cd.."] = {"Name": "cd..","Description": "Moves to parent folder.","Args": "","Shell":false}
 Commands["cd.."]["Run"] = function(args)
-	if globals.currentObjType == "shell" then computer = globals.currentObj.host_computer else computer = globals.currentObj
+	computer = globals.currentComp
 	globals.currentFolder = parent_path(globals.currentFolder)
 	return globals.currentFolder
 end function
@@ -256,7 +307,7 @@ end function
 Commands["cat"] = {"Name": "cat","Description": "Shows the contents of a text file.","Args": "[file]","Shell":false}
 Commands["cat"]["Run"] = function(args)
 	if args.len > 0 then
-		if globals.currentObjType == "shell" then computer = globals.currentObj.host_computer else computer = globals.currentObj
+		computer = globals.currentComp
 		pathFile = args[0]
 		file = computer.File(pathFile)
 		if file == null then file = computer.File(currentFolder+"/"+pathFile)
@@ -271,7 +322,7 @@ end function
 Commands["rm"] = {"Name": "rm","Description": "Delete any file if you have the appropriate permissions.","Args": "[file]","Shell":false}
 Commands["rm"]["Run"] = function(args)
 	if args.len > 0 then
-		if globals.currentObjType == "shell" then computer = globals.currentObj.host_computer else computer = globals.currentObj
+		computer = globals.currentComp
 		pathFile = args[0]
 		file = computer.File(pathFile)
 		if file == null then return print("file not found: "+pathFile)
@@ -297,7 +348,7 @@ end function
 Commands["passwd"] = {"Name": "passwd","Description": "Changes the password of a user","Args": "[username]","Shell":false}
 Commands["passwd"]["Run"] = function(args)
 	if args.len > 0 then
-		if globals.currentObjType == "shell" then computer = globals.currentObj.host_computer else computer = globals.currentObj
+		computer = globals.currentComp
 
 		inputMsg = "Changing password for user " + args[0] +".\nNew password:"
 		inputPass = user_input(inputMsg, true)
