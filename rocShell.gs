@@ -68,7 +68,7 @@ Commands["re"]["Run"] = function(args)
 		if args.len > 2 then injectArg = args[2] else injectArg = null //if there is an arg[2], use it
 		
 		netSession = metaxploit.net_use(targetIp, targetPort) //get net session using target ip and port
-		if typeof(netSession) != "NetSession" then return null //did not get the net session, sth is wrong
+		if typeof(netSession) != "NetSession" then return print("Error: net session didnot establish") //did not get the net session, sth is wrong
 		metaLib = netSession.dump_lib //get the lib from net session
 		
 		memorys = metaxploit.scan(metaLib) //scan for memory
@@ -101,7 +101,8 @@ Commands["re"]["Run"] = function(args)
 		for result in results //loop to print result
 			print((results.indexOf(result) + 1) + "." + result.perm + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln) //print it with number
 		end for
-		selectObj = user_input("select an object with number >").to_int //let user dicide which one to use
+		if results.len == 0 then return print("No exploit found!") //no exploit found
+		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
 		if typeof(selectObj) == "number" and selectObj <= results.len then //TRY NOT TO THROW RANDOM STUFF IN
 			selectObj = selectObj - 1 //minus 1 makes the number index
 			globals.currentObj = results[selectObj].obj //update object
@@ -150,7 +151,8 @@ Commands["lo"]["Run"] = function(args)
 		for result in results
 			print((results.indexOf(result) + 1) + "." + result.perm + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
 		end for
-		selectObj = user_input("select an object with number >").to_int
+		if results.len == 0 then return print("No exploit found!") //no exploit found
+		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
 		if typeof(selectObj) == "number" and selectObj <= results.len then
 			selectObj = selectObj - 1
 			globals.currentObj = results[selectObj].obj
@@ -158,6 +160,80 @@ Commands["lo"]["Run"] = function(args)
 			globals.currentUser = results[selectObj].perm
 			globals.currentRouter = globals.localRouter
 		end if
+	end if
+end function
+
+Commands["mre"] = {"Name": "mre","Description": "Manual remote attack. Attack without scan.","Args": "[ip] [port] [memory] [value] [(opt) injectArg]","Shell":false}
+Commands["mre"]["Run"] = function(args)
+	if args.len > 3 then
+		targetIp = args[0] //store target ip
+		if not is_valid_ip(targetIp) then //if not valid, maybe it is a domain
+			if is_valid_ip(nslookup(targetIp)) then //nice it is a domain
+				targetIp = nslookup(targetIp) //then set target ip to the ip behide the domain
+			else //OOPS
+				return print("IP not found!") //you are fd
+			end if
+		end if
+		targetPort = args[1].to_int //store target port
+		if typeof(targetPort) != "number" then return print("Port invalid.") //dont put random args PLS
+		memory = args[2] //store memory
+		value = args[3] //store value
+		if args.len > 4 then injectArg = args[4] else injectArg = null //if there is an arg[2], use it
+		netSession = metaxploit.net_use(targetIp, targetPort) //get net session using target ip and port
+		if typeof(netSession) != "NetSession" then return print("Error: net session didnot establish") //did not get the net session, sth is wrong
+		metaLib = netSession.dump_lib //get the lib from net session
+		if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value) //run the exploit
+		if typeof(result) != "shell" and typeof(result) != "computer" then return print("Error: exploit failed") //exploit failed
+		if typeof(result) == "shell" then computer = result.host_computer else computer = result //get the computer object for perm testing
+
+		permTest = computer.File("/root") //test perm with path "/root"
+		perm = null //declare perm
+		if permTest.has_permission("w") then //nice it is root we are in
+			perm = "root"
+		else if permTest.has_permission("r") then //well not so bad
+			perm = "user"
+		else
+			perm = "guest" //at least we got something
+		end if
+		YorN = user_input("Exploit succeeded! Press any key to continue, Press n to escape.\n" + perm + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
+		if YorN.lower == "n" then return null //escape
+		globals.currentObj = result //set current object
+		globals.currentFolder = "/" //set current folder
+		globals.currentUser = perm //set current user
+		if not is_lan_ip(targetIp) then globals.currentRouter = get_router(targetIp) //update router
+	else
+		return print("Invalid arguments!") //invalid args
+	end if
+end function
+
+Commands["mlo"] = {"Name": "mlo","Description": "Manual local attack. Attack without scan.","Args": "[lib_path] [memory] [value] [(opt) injectArg]","Shell":false}
+Commands["mlo"]["Run"] = function(args)
+	if args.len > 2 then
+		targetPath = args[0] //store target path
+		targetFile = currentComp.File(targetPath) //get file
+		if not targetFile then return print("File not found!") //test file existance
+		memory = args[1] //store memory
+		value = args[2] //store value
+		if args.len > 3 then injectArg = args[3] else injectArg = null //if there is an arg, use it
+		metaLib = metaxploit.load(targetPath) //load lib
+		if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value) //run the exploit
+		if typeof(result) != "shell" and typeof(result) != "computer" then return print("Error: exploit failed") //exploit failed
+		if typeof(result) == "shell" then computer = result.host_computer else computer = result //get the computer object for perm testing
+		permTest = computer.File("/root") //test perm with path "/root"
+		perm = null //declare perm
+		if permTest.has_permission("w") then //nice it is root we are in
+			perm = "root"
+		else if permTest.has_permission("r") then //well not so bad
+			perm = "user"
+		else
+			perm = "guest" //at least we got something
+		end if
+		YorN = user_input("Exploit succeeded! Press any key to continue, press n to escape.\n" + perm + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
+		if YorN.lower == "n" then return null //escape
+		globals.currentObj = result //set current object
+		globals.currentFolder = "/" //set current folder
+		globals.currentUser = perm //set current user
+		globals.currentRouter = globals.localRouter //set current router
 	end if
 end function
 
@@ -523,8 +599,8 @@ execCmd = function(input) //executes a command
 	cmd = input.split(" ") //split the input into an array of words
 	cmdName = cmd[0] //get the first word as the command name
 	args = cmd[1:] //get the rest of the words as the arguments
-	if Commands.hasIndex(cmdName) then //if the command exists
-		command = Commands[cmdName] //get the command
+	if Commands.hasIndex(cmdName.lower) then //if the command exists
+		command = Commands[cmdName.lower] //get the command object
 		if command.Shell == 1 and globals.currentObjType == "computer" then //if the command requires a shell and the current object is a computer
 			return print("A shell is required for this command." + "\n") //print error
 		end if
