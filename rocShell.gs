@@ -562,17 +562,26 @@ commands["shell"]["cd"]["run"] = function(args)
 	computer = globals.current.obj.host_computer //get computer object
 	directory = globals.current.folder //get directory object
 	if args.len > 0 then
-		if computer.File(args[0]) then //if valid then
-			directory = computer.File(args[0]) //update current folder
-		else if computer.File(directory + "/" + args[0]) then //not valid, check as relative path
-			directory = computer.File(directory + "/"+args[0]) //update
-		else if computer.File(directory + args[0]) then //maybe it is "/"
-			directory = computer.File(directory + args[0]) //update
+		path = args[0] //get path
+		if path == "." then return true
+		if path == ".." then
+			if directory.parent then
+				globals.current.folder = directory.parent
+				return globals.current.folder
+			end if
+			return print("You are already in the root directory.")
+		end if
+		if computer.File(path) then //if valid then
+			directory = computer.File(path) //update current folder
+		else if computer.File(directory.path + "/" + path) then //not valid, check as relative path
+			directory = computer.File(directory.path + "/" + path) //update
+		else if computer.File(directory.path + path) then //maybe it is "/"
+			directory = computer.File(directory.path + path) //update
 		else
 			return print("No such directory.") //check for everything and failed, print error msg
 		end if
 	else
-		directory = computer.File(home_dir)
+		if globals.current.user == "root" then directory = computer.File("/root") else directory = computer.File("/home/" + current.user)
 	end if
 	if not directory.is_folder then return print("No such directory.")
 	globals.current.folder = directory
@@ -605,7 +614,7 @@ commands["shell"]["up"]["run"] = function(args)
 	if not folderTo.is_folder then return print("Remote directory not found.") //check if folder exists
 	if not fileFrom then return print("Local file not found: " + pathFrom) //not found print error msg
 	print("Uploading file: " + fileFrom.name + " to: " + pathTo) //found print target path
-	upload = globals.localShell.scp(fileFrom.path, pathTo, globals.current.obj) //func call as upload
+	upload = globals.local.shell.scp(fileFrom.path, pathTo, globals.current.obj) //func call as upload
 	if not typeof(upload) == "string" then return print("File uploaded successfully.") else return print(upload)
 end function
 
@@ -620,7 +629,7 @@ commands["shell"]["dl"]["run"] = function(args)
 	if not folderTo.is_folder then return print("Local directory not found.") //check if folder exists
 	if not fileFrom then return print("Remote file not found: " + pathFrom) //not found print error msg
 	print("Downloading file: " + fileFrom.name + " to: " + pathTo) //found print target path
-	download = globals.current.obj.scp(fileFrom.path, pathTo, globals.localShell) //func call as download
+	download = globals.current.obj.scp(fileFrom.path, pathTo, globals.local.shell) //func call as download
 	if not typeof(download) == "string" then return print("File uploaded successfully.") else return print(download)
 end function
 
@@ -802,17 +811,26 @@ commands["computer"]["cd"]["run"] = function(args)
 	computer = globals.current.obj //get computer object
 	directory = globals.current.folder //get directory object
 	if args.len > 0 then
-		if computer.File(args[0]) then //if valid then
-			directory = computer.File(args[0]) //update current folder
-		else if computer.File(directory + "/" + args[0]) then //not valid, check as relative path
-			directory = computer.File(directory + "/"+args[0]) //update
-		else if computer.File(directory + args[0]) then //maybe it is "/"
-			directory = computer.File(directory + args[0]) //update
+		path = args[0] //get path
+		if path == "." then return true
+		if path == ".." then
+			if directory.parent then
+				globals.current.folder = directory.parent
+				return globals.current.folder
+			end if
+			return print("You are already in the root directory.")
+		end if
+		if computer.File(path) then //if valid then
+			directory = computer.File(path) //update current folder
+		else if computer.File(directory.path + "/" + path) then //not valid, check as relative path
+			directory = computer.File(directory.path + "/" + path) //update
+		else if computer.File(directory.path + path) then //maybe it is "/"
+			directory = computer.File(directory.path + path) //update
 		else
 			return print("No such directory.") //check for everything and failed, print error msg
 		end if
 	else
-		directory = computer.File(home_dir)
+		if globals.current.user == "root" then directory = computer.File("/root") else directory = computer.File("/home/" + current.user)
 	end if
 	if not directory.is_folder then return print("No such directory.")
 	globals.current.folder = directory
