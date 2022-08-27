@@ -223,6 +223,7 @@ end function
 
 libs.attack = function(metaLib = null)
     if not metaLib then return null //throw error
+	print(metaLib.lib_name + " v" + metaLib.version)
     memorys = metaxploit.scan(metaLib) //scan for memory
     results = []
     for memory in memorys //loop thru memorys
@@ -639,8 +640,8 @@ commands["shell"]["cat"]["run"] = function(args)
 	computer = globals.current.obj.host_computer //get computer
 	pathFile = args[0] //get path
 	file = computer.File(pathFile) //get file with path
-	if file == null then file = computer.File(currentFolder + "/" + pathFile) //not found try relative path
-	if file == null then return print("file not found: " + pathFile) //still not found print error msg
+	if not typeof(file) == "file" then file = computer.File(current.folder.path + "/" + pathFile) //not found try relative path
+	if not typeof(file) == "file" then return print("file not found: " + pathFile) //still not found print error msg
 	if file.is_binary then return print("can't open " + file.path + ". Binary file") //file is bin print error msg
 	if not file.has_permission("r") then return print("permission denied") //no perm print error msg
 	return print(file.get_content) //print file content
@@ -853,8 +854,8 @@ commands["computer"]["cat"]["run"] = function(args)
 	computer = globals.current.obj //get computer
 	pathFile = args[0] //get path
 	file = computer.File(pathFile) //get file with path
-	if file == null then file = computer.File(currentFolder + "/" + pathFile) //not found try relative path
-	if file == null then return print("file not found: " + pathFile) //still not found print error msg
+	if not typeof(file) == "file" then file = computer.File(current.folder.path + "/" + pathFile) //not found try relative path
+	if not typeof(file) == "file" then return print("file not found: " + pathFile) //still not found print error msg
 	if file.is_binary then return print("can't open " + file.path + ". Binary file") //file is bin print error msg
 	if not file.has_permission("r") then return print("permission denied") //no perm print error msg
 	return print(file.get_content) //print file content
