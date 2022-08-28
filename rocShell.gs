@@ -638,7 +638,7 @@ end function
 
 commands["shell"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
 commands["shell"]["cat"]["run"] = function(args)
-	if args.len > 0 then return null
+	if args.len == 0 then return null
 	computer = globals.current.obj.host_computer //get computer
 	pathFile = args[0] //get path
 	file = computer.File(pathFile) //get file with path
@@ -852,7 +852,7 @@ end function
 
 commands["computer"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
 commands["computer"]["cat"]["run"] = function(args)
-	if args.len > 0 then return null
+	if args.len == 0 then return null
 	computer = globals.current.obj //get computer
 	pathFile = args[0] //get path
 	file = computer.File(pathFile) //get file with path
