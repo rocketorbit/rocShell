@@ -40,6 +40,7 @@ libs.checkAccess = function(fileObject)
 	while fileObject.parent
 		fileObject = fileObject.parent
 	end while
+	homeFolder = null
 	for folder in fileObject.get_folders
 		if folder.name == "root" then
 			if folder.has_permission("w") and folder.has_permission("r") and folder.has_permission("x") then return "root"
@@ -48,6 +49,7 @@ libs.checkAccess = function(fileObject)
 			homeFolder = folder
 		end if
 	end for
+	if not homeFolder then return "unknown"
 	for folder in homeFolder.get_folders
 		if folder.name == "guest" then continue
 		if folder.has_permission("w") and folder.has_permission("r") and folder.has_permission("x") then
