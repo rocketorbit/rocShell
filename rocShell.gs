@@ -18,6 +18,7 @@ local.folder = local.computer.File(current_path)
 local.user = active_user
 local.lanIp = get_shell.host_computer.local_ip
 local.publicIp = get_router.public_ip
+local.showIp = true
 //init local vars
 
 current = {}
@@ -32,6 +33,7 @@ end function
 current.publicIp = function()
 	return current.router.public_ip
 end function
+current.showIp = local.showIp
 //init current vars
 
 libs = {}
@@ -430,6 +432,16 @@ allCommands.hash = function(args)
 	return print("Done.")
 end function
 
+allCommands.hide = function(args)
+	globals.current.showIp = false
+	return true
+end function
+
+allCommands.show = function(args)
+	globals.current.showIp = true
+	return true
+end function
+
 commands = {}
 
 commands["shell"] = {}
@@ -634,6 +646,16 @@ commands["shell"]["dl"]["run"] = function(args)
 	print("Downloading file: " + fileFrom.name + " to: " + pathTo) //found print target path
 	download = globals.current.obj.scp(fileFrom.path, pathTo, globals.local.shell) //func call as download
 	if not typeof(download) == "string" then return print("File uploaded successfully.") else return print(download)
+end function
+
+commands["shell"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
+commands["shell"]["hide"]["run"] = function(args)
+	return allCommands.hide(args)
+end function
+
+commands["shell"]["show"] = {"name":"show", "description":"Show ip", "args":""}
+commands["shell"]["show"]["run"] = function(args)
+	return allCommands.show(args)
 end function
 
 commands["shell"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
@@ -854,6 +876,16 @@ end function
 commands["computer"]["local"] = {"name":"local", "description":"Go back to local shell.", "args":""}
 commands["computer"]["local"]["run"] = function(args)
 	return allCommands.local(args)
+end function
+
+commands["computer"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
+commands["computer"]["hide"]["run"] = function(args)
+	return allCommands.hide(args)
+end function
+
+commands["computer"]["show"] = {"name":"show", "description":"Show ip", "args":""}
+commands["computer"]["show"]["run"] = function(args)
+	return allCommands.show(args)
 end function
 
 commands["computer"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
@@ -1102,6 +1134,16 @@ commands["file"]["local"]["run"] = function(args)
 	return allCommands.local(args)
 end function
 
+commands["file"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
+commands["file"]["hide"]["run"] = function(args)
+	return allCommands.hide(args)
+end function
+
+commands["file"]["show"] = {"name":"show", "description":"Show ip", "args":""}
+commands["file"]["show"]["run"] = function(args)
+	return allCommands.show(args)
+end function
+
 commands["file"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
 commands["file"]["cat"]["run"] = function(args)
 	if args.len == 0 then return print("No file specified.")
@@ -1155,7 +1197,11 @@ end function
 main = function()
 	clear_screen
 	while true
-		print("<color=white>-</color><color=yellow>(</color>" + current.user + "<color=white>:</color><color=grey>" + current.objType + "</color><color=#ffbfbf>@</color>" + current.publicIp + "<color=white>~</color>" + current.lanIp + "<color=yellow>)</color><color=white>-</color>[" + current.folder.path + "]")
+		if current.showIp then
+			print("<color=white>-</color><color=yellow>(</color>" + current.user + "<color=white>:</color><color=grey>" + current.objType + "</color><color=#ffbfbf>@</color>" + current.publicIp + "<color=white>~</color>" + current.lanIp + "<color=yellow>)</color><color=white>-</color>[" + current.folder.path + "]")
+		else 
+			print("<color=white>-</color><color=yellow>(</color>" + current.user + "<color=white>:</color><color=grey>" + current.objType + "</color><color=#ffbfbf>@</color>0.0.0.0<color=white>~</color>0.0.0.0<color=yellow>)</color><color=white>-</color>[" + current.folder.path + "]")
+		end if
 		if current.user == "root" then
 			input = user_input("<color=white>-</color><color=red>#</color> ")
 		else
