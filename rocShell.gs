@@ -430,6 +430,12 @@ allCommands.hash = function(args)
 	return print("Done.")
 end function
 
+allCommands.hide = function(args)
+	current.publicIp = "0.0.0.0"
+	current.lanIp = "0.0.0.0"
+	return true
+end function
+
 commands = {}
 
 commands["shell"] = {}
@@ -634,6 +640,11 @@ commands["shell"]["dl"]["run"] = function(args)
 	print("Downloading file: " + fileFrom.name + " to: " + pathTo) //found print target path
 	download = globals.current.obj.scp(fileFrom.path, pathTo, globals.local.shell) //func call as download
 	if not typeof(download) == "string" then return print("File uploaded successfully.") else return print(download)
+end function
+
+commands["shell"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
+commands["shell"]["hide"]["run"] = function(args)
+	return allCommands.hide(args)
 end function
 
 commands["shell"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
@@ -854,6 +865,11 @@ end function
 commands["computer"]["local"] = {"name":"local", "description":"Go back to local shell.", "args":""}
 commands["computer"]["local"]["run"] = function(args)
 	return allCommands.local(args)
+end function
+
+commands["computer"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
+commands["computer"]["hide"]["run"] = function(args)
+	return allCommands.hide(args)
 end function
 
 commands["computer"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
@@ -1100,6 +1116,11 @@ end function
 commands["file"]["local"] = {"name":"local", "description":"Go back to local shell.", "args":""}
 commands["file"]["local"]["run"] = function(args)
 	return allCommands.local(args)
+end function
+
+commands["file"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
+commands["file"]["hide"]["run"] = function(args)
+	return allCommands.hide(args)
 end function
 
 commands["file"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
