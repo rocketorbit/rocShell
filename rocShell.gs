@@ -18,6 +18,7 @@ local.folder = local.computer.File(current_path)
 local.user = active_user
 local.lanIp = get_shell.host_computer.local_ip
 local.publicIp = get_router.public_ip
+local.showIp = true
 //init local vars
 
 current = {}
@@ -32,6 +33,7 @@ end function
 current.publicIp = function()
 	return current.router.public_ip
 end function
+current.showIp = local.showIp
 //init current vars
 
 libs = {}
@@ -431,8 +433,7 @@ allCommands.hash = function(args)
 end function
 
 allCommands.hide = function(args)
-	current.publicIp = "0.0.0.0"
-	current.lanIp = "0.0.0.0"
+	globals.current.showIp = false
 	return true
 end function
 
@@ -1176,7 +1177,11 @@ end function
 main = function()
 	clear_screen
 	while true
-		print("<color=white>-</color><color=yellow>(</color>" + current.user + "<color=white>:</color><color=grey>" + current.objType + "</color><color=#ffbfbf>@</color>" + current.publicIp + "<color=white>~</color>" + current.lanIp + "<color=yellow>)</color><color=white>-</color>[" + current.folder.path + "]")
+		if current.showIp then
+			print("<color=white>-</color><color=yellow>(</color>" + current.user + "<color=white>:</color><color=grey>" + current.objType + "</color><color=#ffbfbf>@</color>" + current.publicIp + "<color=white>~</color>" + current.lanIp + "<color=yellow>)</color><color=white>-</color>[" + current.folder.path + "]")
+		else 
+			print("<color=white>-</color><color=yellow>(</color>" + current.user + "<color=white>:</color><color=grey>" + current.objType + "</color><color=#ffbfbf>@</color>0.0.0.0<color=white>~</color>0.0.0.0<color=yellow>)</color><color=white>-</color>[" + current.folder.path + "]")
+		end if
 		if current.user == "root" then
 			input = user_input("<color=white>-</color><color=red>#</color> ")
 		else
