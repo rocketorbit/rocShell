@@ -676,6 +676,12 @@ commands["shell"]["passwd"]["run"] = function(args)
 	return print(output)
 end function
 
+commands["shell"]["launch"] = {"name":"launch", "description":"Сommand launch via shell.launch().", "args": "[path_to_file] [(opt) args]"}
+commands["shell"]["launch"]["run"] = function(args)
+	if args.len == 0 then return print("Usage: launch [path_to_file] [(opt) args]")
+	return current.obj.launch(args[0], args[1:].join(" "))
+end function
+
 commands["shell"]["clear"] = {"name":"clear", "description":"Delete any text from the terminal.", "args":""}
 commands["shell"]["clear"]["run"] = function(args)
 	return clear_screen //clear the screen
