@@ -665,6 +665,11 @@ commands["shell"]["hash"]["run"] = function(args)
 	return allCommands.hash(args)
 end function
 
+commands["shell"]["launch"] = {"name":"launch", "description":"Сommand launch via shell.launch().", "args": "[path_to_file] [(opt) args]"}
+commands["shell"]["launch"]["run"] = function(args)
+	return current.obj.launch(args[0], args[1:].join(" "))
+end function
+
 commands["shell"]["passwd"] = {"name":"passwd", "description":"Changes the password of a user.", "args":"[username]"}
 commands["shell"]["passwd"]["run"] = function(args)
 	if args.len > 0 then user = args[0] else user = globals.current.user
@@ -1135,12 +1140,7 @@ execute = function(input)
         cmd = input.split(" ") //split the input into an array of words
         cmdName = cmd[0] //get the first word as the command name
         args = cmd[1:] //get the rest of the words as the arguments
-        if not commands[current.objType].hasIndex(cmdName.lower) then
-            if current.objType == "shell" then
-				return current.obj.launch(cmdName, args.join(" "))
-			end if
-			return print("Error: Command not found!") //print error
-		end if
+        if not commands[current.objType].hasIndex(cmdName.lower) then return print("Error: Command not found!") //print error
         command = commands[current.objType][cmdName.lower] //get the command object
         if args.len > 0 then //if there are arguments
             if args[0] == "-h" or args[0] == "--help" then
