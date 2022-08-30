@@ -1135,7 +1135,12 @@ execute = function(input)
         cmd = input.split(" ") //split the input into an array of words
         cmdName = cmd[0] //get the first word as the command name
         args = cmd[1:] //get the rest of the words as the arguments
-        if not commands[current.objType].hasIndex(cmdName.lower) then return print("Error: Command not found!") //print error
+        if not commands[current.objType].hasIndex(cmdName.lower) then
+            if current.objType == "shell" then
+				return current.obj.launch(cmdName, args.join(" "))
+			end if
+			return print("Error: Command not found!") //print error
+		end if
         command = commands[current.objType][cmdName.lower] //get the command object
         if args.len > 0 then //if there are arguments
             if args[0] == "-h" or args[0] == "--help" then
