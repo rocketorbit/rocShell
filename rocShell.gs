@@ -437,6 +437,11 @@ allCommands.hide = function(args)
 	return true
 end function
 
+allCommands.show = function(args)
+	globals.current.showIp = true
+	return true
+end function
+
 commands = {}
 
 commands["shell"] = {}
@@ -646,6 +651,11 @@ end function
 commands["shell"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
 commands["shell"]["hide"]["run"] = function(args)
 	return allCommands.hide(args)
+end function
+
+commands["shell"]["show"] = {"name":"show", "description":"Show ip", "args":""}
+commands["shell"]["show"]["run"] = function(args)
+	return allCommands.show(args)
 end function
 
 commands["shell"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
@@ -871,6 +881,11 @@ end function
 commands["computer"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
 commands["computer"]["hide"]["run"] = function(args)
 	return allCommands.hide(args)
+end function
+
+commands["computer"]["show"] = {"name":"show", "description":"Show ip", "args":""}
+commands["computer"]["show"]["run"] = function(args)
+	return allCommands.show(args)
 end function
 
 commands["computer"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
@@ -1122,6 +1137,11 @@ end function
 commands["file"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
 commands["file"]["hide"]["run"] = function(args)
 	return allCommands.hide(args)
+end function
+
+commands["file"]["show"] = {"name":"show", "description":"Show ip", "args":""}
+commands["file"]["show"]["run"] = function(args)
+	return allCommands.show(args)
 end function
 
 commands["file"]["cat"] = {"name":"cat", "description":"Shows the contents of a text file.", "args":"[file]"}
