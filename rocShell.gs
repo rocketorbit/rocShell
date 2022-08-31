@@ -342,6 +342,40 @@ libs.FindFile = function(nameFile, print=true)
 	end if
 end function
 
+libs.ScanFolder = function(folder, output)
+	for subFile in folder.get_files + folder.get_folders
+		if subFile.is_folder == 0 then
+        	pathFile = subFile.path.replace(" ","_") //space to underline
+       		permission = subFile.permissions //get perms
+        	owner = subFile.owner //get owner
+        	size = subFile.size //get size
+        	group = subFile.group //get group
+        	type = "txt" //init type, txt as default
+        	if subFile.is_binary == 1 then type = "bin" //if bin then bin
+        
+        	WRX = ""
+       		if subFile.has_permission("w") then WRX = WRX + "w" else WRX = WRX + "-" //set wrx as perms
+        	if subFile.has_permission("r") then WRX = WRX + "r" else WRX = WRX + "-"
+        	if subFile.has_permission("x") then WRX = WRX + "x" else WRX = WRX + "-"
+			
+        	output.push(pathFile + " [" + type + "] [" + WRX + "] [" + libs.fileSize(size) + "] [" + permission + "] [" + owner + "] [" + group + "]")
+		else
+			libs.ScanFolder(subFile, output)
+		end if
+	end for
+    return format_columns(output.join("\n"))
+end function
+
+libs.PrintAllFiles = function(args)
+	output = ["<b>NAME TYPE +WRX FILE_SIZE PERMISSIONS OWNER GROUP</b>"]
+	root_folder = null
+	if globals.current.objType == "shell" then root_folder = globals.current.obj.host_computer.File("/")
+	if globals.current.objType == "computer" then root_folder = globals.current.obj.File("/")
+	if globals.current.objType == "file" then root_folder = libs.NavToRoot(globals.current.obj)
+
+	return libs.ScanFolder(root_folder, output)
+end function
+
 allCommands = {}
 allCommands.re = function(args)
 	if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
@@ -654,6 +688,11 @@ commands["shell"]["ffile"]["run"] = function(args)
     return print(libs.FindFile(args[0]))
 end function
 
+commands["shell"]["paf"] = {"name":"paf", "description":"Print all files.", "args":""}
+commands["shell"]["paf"]["run"] = function(args)
+    return print(libs.PrintAllFiles(args))
+end function
+
 commands["shell"]["shell"] = {"name":"shell", "description":"Starts a normal shell.", "args":""}
 commands["shell"]["shell"]["run"] = function(args)
 	return current.obj.start_terminal
@@ -925,6 +964,11 @@ commands["computer"]["ffile"]["run"] = function(args)
     return print(libs.FindFile(args[0]))
 end function
 
+commands["computer"]["paf"] = {"name":"paf", "description":"Print all files.", "args":""}
+commands["computer"]["paf"]["run"] = function(args)
+    return print(libs.PrintAllFiles(args))
+end function
+
 commands["computer"]["local"] = {"name":"local", "description":"Go back to local shell.", "args":""}
 commands["computer"]["local"]["run"] = function(args)
 	return allCommands.local(args)
@@ -1190,6 +1234,11 @@ commands["file"]["ffile"] = {"name":"ffile", "description":"Find file.", "args":
 commands["file"]["ffile"]["run"] = function(args)
     if args.len != 1 then return "Usage: ffile [name_file]"
     return print(libs.FindFile(args[0]))
+end function
+
+commands["file"]["paf"] = {"name":"paf", "description":"Print all files.", "args":""}
+commands["file"]["paf"]["run"] = function(args)
+    return print(libs.PrintAllFiles(args))
 end function
 
 commands["file"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
