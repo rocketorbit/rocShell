@@ -302,6 +302,46 @@ libs.ls = function(folderObj)
     return print("\n") //new line
 end function
 
+libs.NavToRoot = function(file)
+	if file.name != "/" then
+		return libs.NavToRoot(file.parent)
+	end if
+	return file
+end function
+
+libs.SearchFolder = function(folder, name = "", output)	
+	if not folder then return "Error folder in null"
+
+	for file in folder.get_files
+		if file.name == name then return output.push(trim(file.path))
+	end for
+	
+	for folder in folder.get_folders
+		libs.SearchFolder(folder, name, output)
+	end for
+end function
+
+libs.FindFile = function(nameFile, print=true)
+	root_folder = null
+	if globals.current.objType == "shell" then root_folder = globals.current.obj.host_computer.File("/")
+	if globals.current.objType == "computer" then root_folder = globals.current.obj.File("/")
+	if globals.current.objType == "file" then root_folder = libs.NavToRoot(globals.current.obj)
+	
+	if root_folder == null then return "Error: root folder not obtained"
+	output = []
+	
+	libs.SearchFolder(root_folder, nameFile, output)
+	if print == 1 then
+		if output.len == 0 then
+			return "File not found"
+		else if output.len >= 1 then
+			return "Path to file: " + output[0]
+		end if
+	else
+		return output
+	end if
+end function
+
 allCommands = {}
 allCommands.re = function(args)
 	if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
@@ -608,6 +648,12 @@ commands["shell"]["clog"]["run"] = function(args)
 	return libs.corruptLog(globals.current.obj.host_computer) //get computer
 end function
 
+commands["shell"]["ffile"] = {"name":"ffile", "description":"Find file.", "args":"[name_file]"}
+commands["shell"]["ffile"]["run"] = function(args)
+    if args.len != 1 then return "Usage: ffile [name_file]"
+    return print(libs.FindFile(args[0]))
+end function
+
 commands["shell"]["shell"] = {"name":"shell", "description":"Starts a normal shell.", "args":""}
 commands["shell"]["shell"]["run"] = function(args)
 	return current.obj.start_terminal
@@ -873,6 +919,12 @@ commands["computer"]["clog"]["run"] = function(args)
 	return libs.corruptLog(globals.current.obj) //get computer
 end function
 
+commands["computer"]["ffile"] = {"name":"ffile", "description":"Find file.", "args":"[name_file]"}
+commands["computer"]["ffile"]["run"] = function(args)
+    if args.len != 1 then return "Usage: ffile [name_file]"
+    return print(libs.FindFile(args[0]))
+end function
+
 commands["computer"]["local"] = {"name":"local", "description":"Go back to local shell.", "args":""}
 commands["computer"]["local"]["run"] = function(args)
 	return allCommands.local(args)
@@ -1132,6 +1184,12 @@ end function
 commands["file"]["local"] = {"name":"local", "description":"Go back to local shell.", "args":""}
 commands["file"]["local"]["run"] = function(args)
 	return allCommands.local(args)
+end function
+
+commands["file"]["ffile"] = {"name":"ffile", "description":"Find file.", "args":"[name_file]"}
+commands["file"]["ffile"]["run"] = function(args)
+    if args.len != 1 then return "Usage: ffile [name_file]"
+    return print(libs.FindFile(args[0]))
 end function
 
 commands["file"]["hide"] = {"name":"hide", "description":"Hide ip", "args":""}
