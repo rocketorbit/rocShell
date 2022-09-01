@@ -463,6 +463,37 @@ allCommands.mre = function(args)
 	return print("Invalid arguments!") //invalid args
 end function
 
+allCommands.mlo = function(args)
+	if args.len > 2 then
+		if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
+		if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
+		targetPath = "/lib/" + args[0] + ".so" //store target path
+		if not libs.FindFile(args[0] + ".so", false) then return print("Lib not found.") //test file existance
+		memory = args[1] //store memory
+		value = args[2] //store value
+		if args.len > 3 then injectArg = args[3] else injectArg = null //if there is an arg, use it
+		metaLib = metaxploit.load(targetPath) //load lib
+		if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value) //run the exploit
+		if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then return print("Error: exploit failed") //exploit failed
+		if typeof(result) == "shell" then folder = result.host_computer.File("/")
+		if typeof(result) == "computer" then folder = result.File("/")
+		print("NavToRoot")
+		if typeof(result) == "file" then folder = libs.NavToRoot(result)
+		print("ACCess")
+		user = libs.checkAccess(folder)
+		print("end access")
+		YorN = user_input("Exploit succeeded! Press any key to continue, press n to escape.\n" + user + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
+		if YorN.lower == "n" then return null //escape
+		globals.current.obj = result //set current object
+		globals.current.folder = folder //set current folder
+		globals.current.user = user //set current user
+		globals.current.router = globals.local.router //set current router
+		return true
+	else
+		return print("Usage: mlo [libname] [memory] [value] [(opt) injectArg]")
+	end if
+end function
+
 allCommands.nmap = function(args)
 	if args.len > 0 then
 		targetIp = args[0] //init targetIp
@@ -580,34 +611,7 @@ end function
 
 commands["shell"]["mlo"] = {"name":"mlo", "description":"Local attack without scan.", "args":"[libname] [memory] [value] [(opt) injectArg]"}
 commands["shell"]["mlo"]["run"] = function(args)
-	if args.len > 2 then
-		if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
-		if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
-		targetPath = args[0] //store target path
-		targetFile = globals.current.obj.host_computer.File("/lib/" + targetPath + ".so") //get file
-		if not targetFile then return print("Lib not found.") //test file existance
-		memory = args[1] //store memory
-		value = args[2] //store value
-		if args.len > 3 then injectArg = args[3] else injectArg = null //if there is an arg, use it
-		metaLib = metaxploit.load(targetPath) //load lib
-		if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value) //run the exploit
-		if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then return print("Error: exploit failed") //exploit failed
-		if typeof(result) == "shell" then folder = result.host_computer.File("/")
-		if typeof(result) == "computer" then folder = result.File("/")
-		if typeof(result) == "file" then
-			while result.parent
-				result = result.parent
-			end while
-			folder = result
-		end if
-		user = checkAccess(folder)
-		YorN = user_input("Exploit succeeded! Press any key to continue, press n to escape.\n" + perm + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
-		if YorN.lower == "n" then return null //escape
-		globals.current.obj = result //set current object
-		globals.current.folder = folder //set current folder
-		globals.current.user = user //set current user
-		globals.current.router = globals.local.router //set current router
-	end if
+	return allCommands.mlo(args)
 end function
 
 commands["shell"]["ps"] = {"name":"ps", "description":"Shows the active processes of the operating system.", "args":""}
@@ -856,34 +860,7 @@ end function
 
 commands["computer"]["mlo"] = {"name":"mlo", "description":"Local attack without scan.", "args":"[libname] [memory] [value] [(opt) injectArg]"}
 commands["computer"]["mlo"]["run"] = function(args)
-	if args.len > 2 then
-		if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
-		if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
-		targetPath = args[0] //store target path
-		targetFile = globals.current.obj.File("/lib/" + targetPath + ".so") //get file
-		if not targetFile then return print("Lib not found.") //test file existance
-		memory = args[1] //store memory
-		value = args[2] //store value
-		if args.len > 3 then injectArg = args[3] else injectArg = null //if there is an arg, use it
-		metaLib = metaxploit.load(targetPath) //load lib
-		if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value) //run the exploit
-		if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then return print("Error: exploit failed") //exploit failed
-		if typeof(result) == "shell" then folder = result.host_computer.File("/")
-		if typeof(result) == "computer" then folder = result.File("/")
-		if typeof(result) == "file" then
-			while result.parent
-				result = result.parent
-			end while
-			folder = result
-		end if
-		user = checkAccess(folder)
-		YorN = user_input("Exploit succeeded! Press any key to continue, press n to escape.\n" + perm + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
-		if YorN.lower == "n" then return null //escape
-		globals.current.obj = result //set current object
-		globals.current.folder = folder //set current folder
-		globals.current.user = user //set current user
-		globals.current.router = globals.local.router //set current router
-	end if
+	return allCommands.mlo(args)
 end function
 
 commands["computer"]["ps"] = {"name":"ps", "description":"Shows the active processes of the operating system.", "args":""}
@@ -1103,46 +1080,7 @@ end function
 
 commands["file"]["mlo"] = {"name":"mlo", "description":"Local attack without scan.", "args":"[libname] [memory] [value] [(opt) injectArg]"}
 commands["file"]["mlo"]["run"] = function(args)
-	fileObj = globals.current.obj //get file object
-	if args.len > 2 then
-		if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
-		if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
-		targetPath = args[0] //store target path
-		while fileObj.parent
-			fileObj = fileObj.parent
-		end while
-		for folder in fileObj.get_folders
-			if not folder.name == "lib" then continue
-			targetFile = null
-			for file in folder.get_files
-				if not file.name == targetPath + ".so" then continue
-				targetFile = file
-			end for
-			if not targetFile then return print("Lib not found.")
-			break
-		end for	//get all folders
-		memory = args[1] //store memory
-		value = args[2] //store value
-		if args.len > 3 then injectArg = args[3] else injectArg = null //if there is an arg, use it
-		metaLib = metaxploit.load(targetPath) //load lib
-		if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value) //run the exploit
-		if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then return print("Error: exploit failed") //exploit failed
-		if typeof(result) == "shell" then folder = result.host_computer.File("/")
-		if typeof(result) == "computer" then folder = result.File("/")
-		if typeof(result) == "file" then
-			while result.parent
-				result = result.parent
-			end while
-			folder = result
-		end if
-		user = checkAccess(folder)
-		YorN = user_input("Exploit succeeded! Press any key to continue, press n to escape.\n" + perm + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
-		if YorN.lower == "n" then return null //escape
-		globals.current.obj = result //set current object
-		globals.current.folder = folder //set current folder
-		globals.current.user = user //set current user
-		globals.current.router = globals.local.router //set current router
-	end if
+	return allCommands.mlo(args)
 end function
 
 commands["file"]["ls"] = {"name":"ls", "description":"List all files.", "args":"[path]"}
