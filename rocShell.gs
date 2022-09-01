@@ -477,11 +477,8 @@ allCommands.mlo = function(args)
 		if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then return print("Error: exploit failed") //exploit failed
 		if typeof(result) == "shell" then folder = result.host_computer.File("/")
 		if typeof(result) == "computer" then folder = result.File("/")
-		print("NavToRoot")
 		if typeof(result) == "file" then folder = libs.NavToRoot(result)
-		print("ACCess")
 		user = libs.checkAccess(folder)
-		print("end access")
 		YorN = user_input("Exploit succeeded! Press any key to continue, press n to escape.\n" + user + ":" + typeof(result) + " " + memory + " " + value, false ,true) //print exploit success
 		if YorN.lower == "n" then return null //escape
 		globals.current.obj = result //set current object
