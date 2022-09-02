@@ -605,7 +605,7 @@ commands["shell"]["lo"]["run"] = function(args)
 	end if
 end function
 
-commands["shell"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [(opt) injectArg]"}
+commands["shell"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
 commands["shell"]["mre"]["run"] = function(args)
 	return allCommands.mre(args)
 end function
@@ -854,7 +854,7 @@ commands["computer"]["lo"]["run"] = function(args)
 	end if
 end function
 
-commands["computer"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [(opt) injectArg]"}
+commands["computer"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
 commands["computer"]["mre"]["run"] = function(args)
 	return allCommands.mre(args)
 end function
@@ -1074,7 +1074,7 @@ commands["file"]["lo"]["run"] = function(args)
 	end if
 end function
 
-commands["file"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [(opt) injectArg]"}
+commands["file"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
 commands["file"]["mre"]["run"] = function(args)
 	return allCommands.mre(args)
 end function
