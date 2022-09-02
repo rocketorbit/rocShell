@@ -429,6 +429,38 @@ allCommands.re = function(args)
 	end if
 end function
 
+allCommands.lo = function(args)
+	if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
+	if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
+	if args.len > 0 then
+		targetPath = args[0]
+		if args.len > 1 then injectArg = args[1] else injectArg = null
+		fpath = libs.FindFile(targetPath + ".so", false)
+		if not fpath then return print("Lib not found.")	
+		metaLib = metaxploit.load("/lib/" + targetPath + ".so") //load lib with path and this is what makes it unable to use on remote
+		results = libs.attack(metaLib) //get results
+		if results.len == 0 then return print("No exploit found!") //no exploit found
+		for result in results
+			print((results.indexOf(result) + 1) + "." + result.user + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
+		end for
+		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
+		if typeof(selectObj) == "number" and selectObj <= results.len then
+			selectObj = selectObj - 1
+			globals.current.obj = results[selectObj].obj
+			globals.current.user = results[selectObj].user
+			globals.current.router = globals.local.router
+			if typeof(results[selectObj].obj) == "file" then
+				while results[selectObj].obj.parent
+					results[selectObj].obj = results[selectObj].obj.parent
+				end while
+				globals.current.folder = results[selectObj].obj
+			end if
+			if typeof(results[selectObj].obj) == "computer" then globals.current.folder = results[selectObj].obj.File("/")
+			if typeof(results[selectObj].obj) == "shell" then globals.current.folder = results[selectObj].obj.host_computer.File("/")
+		end if
+	end if
+end function
+
 allCommands.mre = function(args)
 	if args.len > 3 then
 		targetIp = args[0] //store target ip
@@ -574,35 +606,7 @@ end function
 
 commands["shell"]["lo"] = {"name": "lo","description": "local attack. Must run this script from target terminal.","args": "[libname] [(opt) injectArg]"}
 commands["shell"]["lo"]["run"] = function(args)
-	if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
-	if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
-	if args.len > 0 then
-		targetPath = args[0]
-		if args.len > 1 then injectArg = args[1] else injectArg = null
-		targetFile = globals.current.obj.host_computer.File("/lib/" + targetPath + ".so") //get file object
-		if not targetFile then return print("Lib not found.") //test if there is this file
-		metaLib = metaxploit.load("/lib/" + targetPath + ".so") //load lib with path and this is what makes it unable to use on remote
-		results = libs.attack(metaLib) //get results
-		if results.len == 0 then return print("No exploit found!") //no exploit found
-		for result in results
-			print((results.indexOf(result) + 1) + "." + result.user + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
-		end for
-		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
-		if typeof(selectObj) == "number" and selectObj <= results.len then
-			selectObj = selectObj - 1
-			globals.current.obj = results[selectObj].obj
-			globals.current.user = results[selectObj].user
-			globals.current.router = globals.local.router
-			if typeof(results[selectObj].obj) == "file" then
-				while results[selectObj].obj.parent
-					results[selectObj].obj = results[selectObj].obj.parent
-				end while
-				globals.current.folder = results[selectObj].obj
-			end if
-			if typeof(results[selectObj].obj) == "computer" then globals.current.folder = results[selectObj].obj.File("/")
-			if typeof(results[selectObj].obj) == "shell" then globals.current.folder = results[selectObj].obj.host_computer.File("/")
-		end if
-	end if
+	allCommands.lo(args)
 end function
 
 commands["shell"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
@@ -823,35 +827,7 @@ end function
 
 commands["computer"]["lo"] = {"name": "lo","description": "local attack. Must run this script from target terminal.","args": "[lib_path] [(opt) injectArg]"}
 commands["computer"]["lo"]["run"] = function(args)
-	if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
-	if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
-	if args.len > 0 then
-		targetPath = args[0]
-		if args.len > 1 then injectArg = args[1] else injectArg = null
-		targetFile = globals.current.obj.host_computer.File("/lib/" + targetPath + ".so") //get file object
-		if not targetFile then return print("No such file or directory") //test if there is this file
-		metaLib = metaxploit.load("/lib/" + targetPath + ".so") //load lib with path and this is what makes it unable to use on remote
-		results = libs.attack(metaLib) //get results
-		if results.len == 0 then return print("No exploit found!") //no exploit found
-		for result in results
-			print((results.indexOf(result) + 1) + "." + result.user + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
-		end for
-		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
-		if typeof(selectObj) == "number" and selectObj <= results.len then
-			selectObj = selectObj - 1
-			globals.current.obj = results[selectObj].obj
-			globals.current.user = results[selectObj].user
-			globals.current.router = globals.local.router
-			if typeof(results[selectObj].obj) == "file" then
-				while results[selectObj].obj.parent
-					results[selectObj].obj = results[selectObj].obj.parent
-				end while
-				globals.current.folder = results[selectObj].obj
-			end if
-			if typeof(results[selectObj].obj) == "computer" then globals.current.folder = results[selectObj].obj.File("/")
-			if typeof(results[selectObj].obj) == "shell" then globals.current.folder = results[selectObj].obj.host_computer.File("/")
-		end if
-	end if
+	return allCommands.lo(args)
 end function
 
 commands["computer"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
@@ -1031,47 +1007,7 @@ end function
 
 commands["file"]["lo"] = {"name": "lo","description": "local attack. Must run this script from target terminal.","args": "[libname] [(opt) injectArg]"}
 commands["file"]["lo"]["run"] = function(args)
-	if not globals.current.publicIp == globals.local.publicIp then return print("You must be on the machine executing this program to use this command.")
-	if not globals.current.lanIp == globals.local.lanIp then return print("You must be on the machine executing this program to use this command.")
-	fileObj = globals.current.obj //get file object
-	if args.len > 0 then
-		targetPath = args[0]
-		if args.len > 1 then injectArg = args[1] else injectArg = null
-		while fileObj.parent
-			fileObj = fileObj.parent
-		end while
-		for folder in fileObj.get_folders
-			if not folder.name == "lib" then continue
-			targetFile = null
-			for file in folder.get_files
-				if not file.name == targetPath + ".so" then continue
-				targetFile = file
-			end for
-			if not targetFile then return print("Lib not found.")
-			break
-		end for	//get all folders
-		metaLib = metaxploit.load("/lib/" + targetPath + ".so") //load lib with path and this is what makes it unable to use on remote
-		results = libs.attack(metaLib) //get results
-		if results.len == 0 then return print("No exploit found!") //no exploit found
-		for result in results
-			print((results.indexOf(result) + 1) + "." + result.user + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
-		end for
-		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
-		if typeof(selectObj) == "number" and selectObj <= results.len then
-			selectObj = selectObj - 1
-			globals.current.obj = results[selectObj].obj
-			globals.current.user = results[selectObj].user
-			globals.current.router = globals.local.router
-			if typeof(results[selectObj].obj) == "file" then
-				while results[selectObj].obj.parent
-					results[selectObj].obj = results[selectObj].obj.parent
-				end while
-				globals.current.folder = results[selectObj].obj
-			end if
-			if typeof(results[selectObj].obj) == "computer" then globals.current.folder = results[selectObj].obj.File("/")
-			if typeof(results[selectObj].obj) == "shell" then globals.current.folder = results[selectObj].obj.host_computer.File("/")
-		end if
-	end if
+	return allCommands.lo(args)
 end function
 
 commands["file"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
