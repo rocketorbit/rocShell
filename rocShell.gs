@@ -606,7 +606,7 @@ end function
 
 commands["shell"]["lo"] = {"name": "lo","description": "local attack. Must run this script from target terminal.","args": "[libname] [(opt) injectArg]"}
 commands["shell"]["lo"]["run"] = function(args)
-	allCommands.lo(args)
+	return allCommands.lo(args)
 end function
 
 commands["shell"]["mre"] = {"name":"mre", "description":"Remote attack without scan.", "args":"[ip] [port] [memory] [value] [(opt) injectArg]"}
