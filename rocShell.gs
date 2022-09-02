@@ -338,7 +338,11 @@ libs.FindFile = function(nameFile, print=true)
 			return "Path to file: " + output[0]
 		end if
 	else
-		return output
+		if output.len == 0 then
+			return null
+		else if output.len >= 1 then
+			return output[0]
+		end if
 	end if
 end function
 
