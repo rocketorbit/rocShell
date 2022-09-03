@@ -225,7 +225,7 @@ libs.nmapPublicIP = function(IP)
 	print(format_columns(info) + "\n") 
 end function
 
-libs.attack = function(metaLib = null)
+libs.attack = function(metaLib = null, injectArg = null)
     if not metaLib then return null //throw error
 	print(metaLib.lib_name + " v" + metaLib.version)
     results = []
@@ -239,7 +239,7 @@ libs.attack = function(metaLib = null)
             if address == addresses[0] then continue //ignore first line
             value = address[address.indexOf("<b>")+3:address.indexOf("</b>")] //get value from address, store it
             value = value.replace("\n", "") //get rid of line break
-            result = metaLib.overflow(memory, value)
+            if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value)
             if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then continue //if result is not a shell, computer or file, continue
             if typeof(result) == "shell" then folder = result.host_computer.File("/") //get the file object for perm testing
             if typeof(result) == "computer" then folder = result.File("/") //get the file object for perm testing
@@ -463,7 +463,7 @@ allCommands.re = function(args)
 		if typeof(netSession) != "NetSession" then return print("Error: net session didnot establish") //did not get the net session, sth is wrong
 		metaLib = netSession.dump_lib //get the lib from net session
 		
-		results = libs.attack(metaLib) //get results
+		results = libs.attack(metaLib, injectArg) //get results
 
 		if typeof(results) != "list" then return print("Error: Unknown error.") //if no results, sth is wrong
 		if results.len == 0 then return print("Error: No results found.") //if no results, sth is wrong
@@ -505,7 +505,7 @@ allCommands.lo = function(args)
 		fpath = libs.FindFile(targetPath + ".so", false)
 		if not fpath then return print("Lib not found.")	
 		metaLib = metaxploit.load("/lib/" + targetPath + ".so") //load lib with path and this is what makes it unable to use on remote
-		results = libs.attack(metaLib) //get results
+		results = libs.attack(metaLib, injectArg) //get results
 		if results.len == 0 then return print("No exploit found!") //no exploit found
 		for result in results
 			print((results.indexOf(result) + 1) + "." + result.user + ":" + result.obj + " " + result.addr + " " + result.vuln)
