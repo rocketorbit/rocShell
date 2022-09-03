@@ -228,8 +228,11 @@ end function
 libs.attack = function(metaLib = null)
     if not metaLib then return null //throw error
 	print(metaLib.lib_name + " v" + metaLib.version)
-    memorys = metaxploit.scan(metaLib) //scan for memory
     results = []
+	loadedExploits = libs.getExploits(metaLib.lib_name, metaLib.version)
+	if typeof(loadedExploits) == "string" then return print(loadedExploits)
+	if loadedExploits != [] then return loadedExploits
+    memorys = metaxploit.scan(metaLib) //scan for memory
     for memory in memorys //loop thru memorys
         addresses = metaxploit.scan_address(metaLib, memory).split("Unsafe check:") //scan for exploit, store it
         for address in addresses //loop thru addresses
@@ -243,11 +246,70 @@ libs.attack = function(metaLib = null)
             if typeof(result) == "file" then folder = result
             user = libs.checkAccess(folder)
             resultMap = {"user": user, "obj": result, "addr": memory, "vuln": value} //store result as a map
+			libs.writeExploit({"libName": metaLib.lib_name, "libVersion": metaLib.version, "user": user, "obj": result, "addr": memory, "vuln": value})
             results.push(resultMap)
         end for
     end for
 	return results //return results
 end function //takes a string ip and number port and returns a list of maps
+
+libs.writeExploit = function(resultMap, filename=".vulns", sep="::")
+	fpath = null
+    if libs.FindFile(filename, false, true) then 
+		fpath = libs.FindFile(filename, false, true)
+	else
+		globals.local.computer.touch(current_path, filename)
+		fpath = current_path + filename
+	end if	
+	if not fpath then return "File " + filename + " not found"
+	f = globals.local.computer.File(fpath)
+	if not f then return "File " + filename + " not found" 
+    if not f.has_permission("r") or not f.has_permission("w") then return "No permissions"
+    fcontent = f.get_content + resultMap.values.join(sep) + char(10)
+    f.set_content(fcontent)
+	return true
+end function
+
+libs.loadExploits = function(filename=".vulns", sep="::")
+	fpath = null
+    if libs.FindFile(filename, false, true) then 
+		fpath = libs.FindFile(filename, false, true)
+	else
+		globals.local.computer.touch(current_path, filename)
+		fpath = current_path + filename
+	end if
+	if not fpath then return "File " + filename + " not found"
+    f = globals.local.computer.File(fpath)
+	if not f then return "File " + filename + " not found"
+	if not f.has_permission("r") then return "No permissions"
+	vulns = []
+    for vuln in f.get_content.split(char(10))
+		if vuln == "" then return vulns
+		vulnSplit = vuln.split(sep)
+		if vulnSplit.len != 6 then continue
+		vulns.push({"libName": vulnSplit[0], "libVersion": vulnSplit[1], "user": vulnSplit[2], "obj": vulnSplit[3], "addr": vulnSplit[4], "vuln": vulnSplit[5]})
+	end for
+end function
+
+libs.getExploits = function(libName, libVersion, filename=".vulns", sep="::")
+	exploits = []
+	allExploits = libs.loadExploits()
+	if typeof(allExploits) == "string" then
+		if allExploits == "File " + filename + " not found" then
+			return []
+		else
+			return allExploits
+		end if
+	end if
+	for exploit in allExploits
+		if exploit["libName"] == libName and exploit["libVersion"] == libVersion then
+			exploit.remove("libName")
+			exploit.remove("libVersion")
+			exploits.push(exploit)
+		end if
+	end for
+	return exploits
+end function
 
 libs.getFile = function(fileList = [], folderObj)
 	for folder in fileList
@@ -321,12 +383,16 @@ libs.SearchFolder = function(folder, name = "", output)
 	end for
 end function
 
-libs.FindFile = function(nameFile, print=true)
+libs.FindFile = function(nameFile, print=true, local=false)
 	root_folder = null
-	if globals.current.objType == "shell" then root_folder = globals.current.obj.host_computer.File("/")
-	if globals.current.objType == "computer" then root_folder = globals.current.obj.File("/")
-	if globals.current.objType == "file" then root_folder = libs.NavToRoot(globals.current.obj)
-	
+	if local == 0 then
+		if globals.current.objType == "shell" then root_folder = globals.current.obj.host_computer.File("/")
+		if globals.current.objType == "computer" then root_folder = globals.current.obj.File("/")
+		if globals.current.objType == "file" then root_folder = libs.NavToRoot(globals.current.obj)
+	else if local == 1 then
+		root_folder = globals.local.computer.File("/")
+	end if
+
 	if root_folder == null then return "Error: root folder not obtained"
 	output = []
 	
@@ -402,12 +468,13 @@ allCommands.re = function(args)
 		if typeof(results) != "list" then return print("Error: Unknown error.") //if no results, sth is wrong
 		if results.len == 0 then return print("Error: No results found.") //if no results, sth is wrong
 		for result in results //loop to print result
-			print((results.indexOf(result) + 1) + "." + result.user + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln) //print it with number
+			print((results.indexOf(result) + 1) + "." + result.user + ":" + result.obj + " " + result.addr + " " + result.vuln) //print it with number
 		end for
 		if results.len == 0 then return print("No exploit found!") //no exploit found
 		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
 		if typeof(selectObj) == "number" and selectObj <= results.len then //TRY NOT TO THROW RANDOM STUFF IN
 			selectObj = selectObj - 1 //minus 1 makes the number index
+			if typeof(results[selectObj].obj) == "string" then return allCommands.mre([args[0], args[1], results[selectObj].addr, results[selectObj].vuln])
 			globals.current.obj = results[selectObj].obj //update object
 			if is_lan_ip(targetIp) then
 				globals.current.lanIp = targetIp //update lan ip
@@ -441,11 +508,12 @@ allCommands.lo = function(args)
 		results = libs.attack(metaLib) //get results
 		if results.len == 0 then return print("No exploit found!") //no exploit found
 		for result in results
-			print((results.indexOf(result) + 1) + "." + result.user + ":" + typeof(result.obj) + " " + result.addr + " " + result.vuln)
+			print((results.indexOf(result) + 1) + "." + result.user + ":" + result.obj + " " + result.addr + " " + result.vuln)
 		end for
 		if results.len <= 9 then selectObj = user_input("select an object with number >", false, true).to_int else selectObj = user_input("select an object with number >").to_int //ask user for object number
 		if typeof(selectObj) == "number" and selectObj <= results.len then
 			selectObj = selectObj - 1
+			if typeof(results[selectObj].obj) == "string" then return allCommands.mlo([args[0], results[selectObj].addr, results[selectObj].vuln])
 			globals.current.obj = results[selectObj].obj
 			globals.current.user = results[selectObj].user
 			globals.current.router = globals.local.router
