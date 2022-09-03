@@ -230,7 +230,6 @@ libs.attack = function(metaLib = null, injectArg = null)
 	print(metaLib.lib_name + " v" + metaLib.version)
   results = []
 	loadedExploits = libs.getExploits(metaLib.lib_name, metaLib.version)
-	print(loadedExploits)
 	if loadedExploits.len == 0 then
     memorys = metaxploit.scan(metaLib) //scan for memory
     libs.writeExploits(metaLib.lib_name, metaLib.version, memorys)
