@@ -226,36 +226,39 @@ libs.nmapPublicIP = function(IP)
 end function
 
 libs.attack = function(metaLib = null, injectArg = null)
-    if not metaLib then return null //throw error
+  if not metaLib then return null //throw error
 	print(metaLib.lib_name + " v" + metaLib.version)
-    results = []
+  results = []
 	loadedExploits = libs.getExploits(metaLib.lib_name, metaLib.version)
-	if typeof(loadedExploits) == "string" then return print(loadedExploits)
-	if loadedExploits != [] then return loadedExploits
+	print(loadedExploits)
+	if loadedExploits.len == 0 then
     memorys = metaxploit.scan(metaLib) //scan for memory
-    for memory in memorys //loop thru memorys
-        addresses = metaxploit.scan_address(metaLib, memory).split("Unsafe check:") //scan for exploit, store it
-        for address in addresses //loop thru addresses
-            if address == addresses[0] then continue //ignore first line
-            value = address[address.indexOf("<b>")+3:address.indexOf("</b>")] //get value from address, store it
-            value = value.replace("\n", "") //get rid of line break
-            if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value)
-            if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then continue //if result is not a shell, computer or file, continue
-            if typeof(result) == "shell" then folder = result.host_computer.File("/") //get the file object for perm testing
-            if typeof(result) == "computer" then folder = result.File("/") //get the file object for perm testing
-            if typeof(result) == "file" then folder = result
-            user = libs.checkAccess(folder)
-            resultMap = {"user": user, "obj": result, "addr": memory, "vuln": value} //store result as a map
-			libs.writeExploit({"libName": metaLib.lib_name, "libVersion": metaLib.version, "user": user, "obj": result, "addr": memory, "vuln": value})
-            results.push(resultMap)
-        end for
+    libs.writeExploits(metaLib.lib_name, metaLib.version, memorys)
+  else
+  	memorys = loadedExploits
+  end if
+  for memory in memorys //loop thru memorys
+    addresses = metaxploit.scan_address(metaLib, memory).split("Unsafe check:") //scan for exploit, store it
+    for address in addresses //loop thru addresses
+      if address == addresses[0] then continue //ignore first line
+      value = address[address.indexOf("<b>")+3:address.indexOf("</b>")] //get value from address, store it
+      value = value.replace("\n", "") //get rid of line break
+      if injectArg then result = metaLib.overflow(memory, value, injectArg) else result = metaLib.overflow(memory, value)
+      if typeof(result) != "shell" and typeof(result) != "computer" and typeof(result) != "file" then continue //if result is not a shell, computer or file, continue
+      if typeof(result) == "shell" then folder = result.host_computer.File("/") //get the file object for perm testing
+      if typeof(result) == "computer" then folder = result.File("/") //get the file object for perm testing
+      if typeof(result) == "file" then folder = result
+      user = libs.checkAccess(folder)
+      resultMap = {"user": user, "obj": result, "addr": memory, "vuln": value} //store result as a map
+      results.push(resultMap)
     end for
+  end for
 	return results //return results
 end function //takes a string ip and number port and returns a list of maps
 
-libs.writeExploit = function(resultMap, filename=".vulns", sep="::")
+libs.writeExploits = function(libName, libVersion, resultArray, filename=".vulns", sep="::")
 	fpath = null
-    if libs.FindFile(filename, false, true) then 
+  if libs.FindFile(filename, false, true) then 
 		fpath = libs.FindFile(filename, false, true)
 	else
 		globals.local.computer.touch(current_path, filename)
@@ -264,9 +267,12 @@ libs.writeExploit = function(resultMap, filename=".vulns", sep="::")
 	if not fpath then return "File " + filename + " not found"
 	f = globals.local.computer.File(fpath)
 	if not f then return "File " + filename + " not found" 
-    if not f.has_permission("r") or not f.has_permission("w") then return "No permissions"
-    fcontent = f.get_content + resultMap.values.join(sep) + char(10)
-    f.set_content(fcontent)
+  if not f.has_permission("r") or not f.has_permission("w") then return "No permissions"
+  fcontent = f.get_content
+  for memory in memorys
+    fcontent = fcontent + libName + sep + libVersion + sep + memory + char(10)
+  end for
+  f.set_content(fcontent)
 	return true
 end function
 
@@ -283,12 +289,13 @@ libs.loadExploits = function(filename=".vulns", sep="::")
 	if not f then return "File " + filename + " not found"
 	if not f.has_permission("r") then return "No permissions"
 	vulns = []
-    for vuln in f.get_content.split(char(10))
-		if vuln == "" then return vulns
+  for vuln in f.get_content.split(char(10))
+		if vuln.len == 0 then continue
 		vulnSplit = vuln.split(sep)
-		if vulnSplit.len != 6 then continue
-		vulns.push({"libName": vulnSplit[0], "libVersion": vulnSplit[1], "user": vulnSplit[2], "obj": vulnSplit[3], "addr": vulnSplit[4], "vuln": vulnSplit[5]})
+		if vulnSplit.len != 3 then continue
+		vulns.push({"libName": vulnSplit[0], "libVersion": vulnSplit[1], "addr": vulnSplit[2]})
 	end for
+	return vulns
 end function
 
 libs.getExploits = function(libName, libVersion, filename=".vulns", sep="::")
@@ -303,9 +310,7 @@ libs.getExploits = function(libName, libVersion, filename=".vulns", sep="::")
 	end if
 	for exploit in allExploits
 		if exploit["libName"] == libName and exploit["libVersion"] == libVersion then
-			exploit.remove("libName")
-			exploit.remove("libVersion")
-			exploits.push(exploit)
+			exploits.push(exploit["addr"])
 		end if
 	end for
 	return exploits
