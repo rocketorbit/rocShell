@@ -309,7 +309,7 @@ shellCommands["up"] = {"name":"up", "description":"Upload a file. Only take abso
 shellCommands["up"]["run"] = function(args)
     if args.len < 2 then return print("Usage: up [local_file_path] [remote_path].")
     localShell = local.shell
-    remoteShell = current.shell
+    remoteShell = current.obj
 	pathFrom = args[0]
 	pathTo = args[1]
 	fileFrom = globals.local.computer.File(pathFrom) //get file
@@ -325,7 +325,7 @@ end function
 shellCommands["dl"] = {"name":"dl", "description":"download a file.", "args":"[remote_file_path] [local_path]"}
 shellCommands["dl"]["run"] = function(args)
     localShell = local.shell
-    remoteShell = current.shell
+    remoteShell = current.obj
     if args.len < 2 then return print("Usage: dl [remote_file_path] [local_path].")
 	pathFrom = args[0]
 	pathTo = args[1]
@@ -389,7 +389,7 @@ commands["re"]["run"] = function(args)
     results = []
     for e in exploits.memorys
         for value in e.value
-            object = metaLib.overflow(e.key, value)
+            object = metaLib.overflow(e.key, value, injectArg)
             if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
             result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
             results = results + [result]
@@ -426,7 +426,7 @@ commands["lo"]["run"] = function(args)
     results = []
     for e in exploits.memorys
         for value in e.value
-            object = metaLib.overflow(e.key, value)
+            object = metaLib.overflow(e.key, value, injectArg)
             if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
             result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
             results = results + [result]
@@ -767,6 +767,15 @@ commands["clog"]["run"] = function(args)
 	tryClearLog = libs.corruptLog(current.folder)
     if not tryClearLog then return print("Failed.")
     return print("Done.")
+end function
+commands["local"] = {"name":"local", "description":"Get back to local.", "args":""}
+commands["local"]["run"] = function(args)
+    globals.current.obj = local.shell
+    globals.current.router = local.router
+    globals.current.folder = local.folder
+    globals.current.user = local.user
+    globals.current.lanIp = local.lanIp
+	return null
 end function
 commands["clear"] = {"name":"clear", "description":"Clear screen.", "args":""}
 commands["clear"]["run"] = function(args)
