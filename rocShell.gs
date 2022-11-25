@@ -379,9 +379,11 @@ commands["re"]["run"] = function(args)
     if not typeof(select) == "number" then return null
     if select > results.len then return null
     if select < 1 then return null
-    globals.current.obj = results[i].object
+    select = select - 1
+    globals.current.obj = results[select].object
     if not is_lan_ip(targetIp) then globals.current.router = get_router(targetIp)
-    globals.folder = libs.toFile(object)
+    globals.current.folder = libs.toFile(results[select].object)
+    globals.current.user = results[select].user
     if targetPort == 0 then globals.lanIp = globals.current.router.local_ip else globals.lanIp = globals.current.router.ping_port(targetPort).get_lan_ip
     return null
 end function
@@ -414,8 +416,10 @@ commands["lo"]["run"] = function(args)
     if not typeof(select) == "number" then return null
     if select > results.len then return null
     if select < 1 then return null
-    globals.current.obj = results[i].object
-    globals.folder = libs.toFile(object)
+    select = select - 1
+    globals.current.obj = results[select].object
+    globals.current.folder = libs.toFile(results[select].object)
+    globals.current.user = results[select].user
     return null
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
@@ -586,17 +590,17 @@ commands["help"]["run"] = function(args)
 	output = "\n" + typeof(current.obj) + " commands:" + "\n"
 	for command in commands
 		commandData = command.value
-		output = output + "		" + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+		output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
 	end for
 	if typeof(current.obj) == "computer" or typeof(current.obj) == "shell" then
 		for command in computerCommands
 			commandData = command.value
-			output = output + "		" + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+			output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
 		end for
 		if typeof(current.obj) == "shell" then
 			for command in shellCommands
 				commandData = command.value
-				output = output + "		" + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+				output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
 			end for
 		end if
 	end if
@@ -694,7 +698,7 @@ commands["hash"]["run"] = function(args)
 		for j in passes[i].indexes
 			passes[i][j] = passes[i][j].split(";")
 			for k in passes[i][j].indexes
-				hashes = hashes + [pass[i][j][k]]
+				hashes = hashes + [passes[i][j][k]]
 			end for
 		end for
 	end for
