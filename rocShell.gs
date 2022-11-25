@@ -1,4 +1,4 @@
-clear_screen
+clear_screen //if you dont like screen to be cleared remove this line
 
 //import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
 
@@ -126,6 +126,7 @@ libs.allFiles = function(fileObject) //list all file object under a dir
 	while i < files.len
 		if files[i].is_folder then files = files + files[i].get_folders + files[i].get_files
 		i = i + 1
+        if i > 1000 then break //prevent huge file system/recursive file system(new glitch)
 	end while
 	return files
 end function
@@ -251,6 +252,30 @@ computerCommands["kill"]["run"] = function(args)
 	if output == true then return print("Process " + PID + " closed")
 	if output then return print(output)
 	return print("Process " + PID + " not found")
+end function
+computerCommands["touch"] = {"name":"touch", "description":"Create a text file.", "args":"[file_path]"}
+computerCommands["touch"]["run"] = function(args)
+	if args.len < 1 then return print("Usage: touch [file_name]")
+	path = libs.absolutePath(args[0], current.folder.path)
+    if path == null then return print("path not found")
+    parent = parent_path(path)
+    name = path.split("/")[-1]
+	doTouch = current.computer.touch(parent, name)
+    if doTouch == true then return print("Done.")
+    print(doTouch)
+	return print("Failed.")
+end function
+computerCommands["mkdir"] = {"name":"mkdir", "description":"Create a empty folder.", "args":"[folder_path]"}
+computerCommands["mkdir"]["run"] = function(args)
+	if args.len < 1 then return print("Usage: mkdir [folder_path]")
+	path = libs.absolutePath(args[0], current.folder.path)
+    if path == null then return print("path not found")
+    parent = parent_path(path)
+    name = path.split("/")[-1]
+	doMkdir = current.computer.create_folder(parent, name)
+    if doMkdir == true then return print("Done.")
+    print(doMkdir)
+	return print("Failed.")
 end function
 
 shellCommands = {}
@@ -625,8 +650,8 @@ commands["valn"]["run"] = function(args)
 	output = files.sort.join("\n")
 	return print(output)
 end function
-commands["vi"] = {"name":"vi", "description":"Text Editor. Will clear screen to display text.", "args":"[path_to_text]"}
-commands["vi"]["run"] = function(args)
+commands["text"] = {"name":"text", "description":"Text Editor. Will clear screen to display text.", "args":"[path_to_text]"}
+commands["text"]["run"] = function(args)
 	if args.len < 1 then return print("Invalid arguments!")
 	pathText = libs.absolutePath(args[0], current.folder.path)
 	if not pathText then return print("File not found.")
@@ -634,24 +659,50 @@ commands["vi"]["run"] = function(args)
 	if not textFile then return print("File not found.")
 	if textFile.is_binary or textFile.is_folder then return print("File not text.")
 	text = textFile.get_content
-	text = text.split(char(10))
+	lines = text.split(char(10))
 	while true
 		clear_screen
-		for i in text.indexes
-			line = "<color=orange>" + i + "</color><color=white>:</color>" + char(9)
-			line = line + text[i]
+		for i in lines.indexes
+			line = "<color=orange>" + str(i + 1) + "</color>" + char(9)
+			line = line + lines[i]
 			print(line)
 		end for
 		print("x: save and exit, s: save, q: exit, i: insert, m: modify, r: remove")
 		option = user_input("> ", false, true)
-		if option.lower == "s" or option.lower == "x" then textFile.set_content(text.join(char(10)))
+		if option.lower == "s" or option.lower == "x" then textFile.set_content(lines.join(char(10)))
 		if option.lower == "q" or option.lower == "x" then break
 		if option.lower == "i" then
 			print("specify line number, c to cancel.")
 			lineNum = user_input("> ").to_int
-			
-			if not typeof(lineNum) == number then continue
+            newText = user_input("input text:" + char(10))
+			if not lineNum isa number then continue
+            if lineNum >= lines.len then lineNum = lines.len
+            if lineNum < 0 then lineNum = 0
+            lines = lines[:lineNum] + [newText] + lines[lineNum:]
+            continue
 		end if
+        if option.lower == "m" then
+			print("specify line number, c to cancel.")
+			lineNum = user_input("> ").to_int
+            newText = user_input("input text:" + char(10))
+			if not lineNum isa number then continue
+            if lineNum > lines.len then lineNum = lines.len
+            if lineNum < 1 then lineNum = 1
+            lines[lineNum - 1] = newText
+            continue
+		end if
+        if option.lower == "r" then
+            print("specify line number, c to cancel.")
+			lineNum = user_input("> ").to_int
+            if not lineNum isa number then continue
+            if lineNum < 1 or lineNum > lines.len then continue
+            if lines.len == 1 then
+                lines[0] = ""
+                continue
+            end if
+            lines = lines[:lineNum - 1] + lines[lineNum:]
+            continue
+        end if
 	end while
 	return print("Done.")
 end function
@@ -677,7 +728,6 @@ commands["rm"]["run"] = function(args)
     while folderObj.parent
         folderObj = folderObj.parent
     end while
-    fileList = libs.allFiles(folderObj)
     toPath = libs.absolutePath(args[0], current.folder.path)
     if not toPath then return print("No file specified.")
 	toDelete = libs.getFile(toPath, folderObj)
