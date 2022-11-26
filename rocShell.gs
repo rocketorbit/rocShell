@@ -470,7 +470,7 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
             s = s + router.port_info(lanPort)
             for publicPort in publicPorts
                 iPort = router.ping_port(publicPort.port_number)
-                if iPort.port_number == lanPort.port_number and iPort.get_lan_ip == IP then
+                if iPort.port_number == lanPort.port_number and iPort.get_lan_ip == targetIp then
                     s = s + "-->" + " External Address: " + router.public_ip + ":" + publicPort.port_number
                 end if
             end for
