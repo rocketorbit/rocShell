@@ -409,7 +409,16 @@ commands["re"]["run"] = function(args)
     if not is_lan_ip(targetIp) then globals.current.router = get_router(targetIp)
     globals.current.folder = libs.toFile(results[select].object)
     globals.current.user = results[select].user
-    if targetPort == 0 then globals.lanIp = globals.current.router.local_ip else globals.lanIp = globals.current.router.ping_port(targetPort).get_lan_ip
+    if targetPort == 0 then
+        if is_lan_ip(injectArg) then //first we guess the ip, if the injected string is a lan ip, we assume it is that.
+            globals.lanIp = injectArg //this may not be correct.
+        else
+            globals.lanIp = globals.current.router.local_ip //if the injected string is not a lan ip, the correct lan ip must be the router lan ip.
+        end if
+        if current.computer then globals.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
+    else
+        globals.lanIp = globals.current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
+    end if
     return null
 end function
 commands["lo"] = {"name":"lo", "description":"Local attack.", "args":"[lib_path] [(opt) injectArg]"}
