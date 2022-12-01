@@ -411,13 +411,14 @@ commands["re"]["run"] = function(args)
     globals.current.user = results[select].user
     if targetPort == 0 then
         if is_lan_ip(injectArg) then //first we guess the ip, if the injected string is a lan ip, we assume it is that.
-            globals.lanIp = injectArg //this may not be correct.
+            globals.current.lanIp = injectArg //this may not be correct.
+            if libs.getFile("/lib/kernel_router.so", current.folder) then globals.current.lanIp = current.router.local_ip //if we find router kernel we set ip to router
         else
-            globals.lanIp = globals.current.router.local_ip //if the injected string is not a lan ip, the correct lan ip must be the router lan ip.
+            globals.current.lanIp = current.router.local_ip //if the injected string is not a lan ip, the correct lan ip must be the router lan ip.
         end if
-        if current.computer then globals.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
+        if current.computer then globals.current.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
     else
-        globals.lanIp = globals.current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
+        globals.current.lanIp = current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
     end if
     return null
 end function
