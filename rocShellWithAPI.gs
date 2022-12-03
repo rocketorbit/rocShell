@@ -1,5 +1,7 @@
 clear_screen //if you dont like screen to be cleared remove this line
 
+import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
+
 local = {}
 local.shell = get_shell
 local.computer = get_shell.host_computer
@@ -418,43 +420,56 @@ commands["re"]["run"] = function(args)
     if not netSession then return print("Unable to make net session.")
     metaLib = netSession.dump_lib
     if not metaLib then return print("Unable to dump lib.")
-    exploits = libs.scanLib(metaLib, metaxploit)
-    if not exploits then return print("Unable to scan for exploits.")
-    results = []
-    for e in exploits.memorys
-        for value in e.value
-            object = metaLib.overflow(e.key, value, injectArg)
-            if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
-            result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
-            results = results + [result]
+    forceLocal = false
+    while true
+        exploits = queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
+        //exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
+        if (not exploits) or forceLocal then exploits = remoteScan(targetIp, targetPort) //Scan for exploit and send to cloud database thru API
+        if not exploits then return print("Unable to scan for exploits.")
+        results = []
+        for e in exploits.memorys
+            for value in e.value
+                object = metaLib.overflow(e.key, value, injectArg)
+                if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
+                result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
+                results = results + [result]
+            end for
         end for
-    end for
-    toPrint = ""
-    for i in results.indexes
-        toPrint = toPrint + str(i + 1) + ". " + results[i].user + ":" + typeof(results[i].object) + " " + results[i].addr + " " + results[i].valn + char(10)
-    end for
-    print(format_columns(toPrint))
-    select = user_input("Select> ").to_int
-    if not typeof(select) == "number" then return null
-    if select > results.len then return null
-    if select < 1 then return null
-    select = select - 1
-    globals.current.obj = results[select].object
-    if not is_lan_ip(targetIp) then globals.current.router = get_router(targetIp)
-    globals.current.folder = libs.toFile(results[select].object)
-    globals.current.user = results[select].user
-    if targetPort == 0 then
-        if is_lan_ip(injectArg) then //first we guess the ip, if the injected string is a lan ip, we assume it is that.
-            globals.current.lanIp = injectArg //this may not be correct.
-            if libs.getFile("/lib/kernel_router.so", current.folder) then globals.current.lanIp = current.router.local_ip //if we find router kernel we set ip to router
-        else
-            globals.current.lanIp = current.router.local_ip //if the injected string is not a lan ip, the correct lan ip must be the router lan ip.
+        toPrint = ""
+        for i in results.indexes
+            toPrint = toPrint + str(i + 1) + ". " + results[i].user + ":" + typeof(results[i].object) + " " + results[i].addr + " " + results[i].valn + char(10)
+        end for
+        if not forceLocal then
+            print("Perform a force local scan may find more exploits.")
+            print("Enter ""f"" to do a local scan.")
         end if
-        if current.computer then globals.current.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
-    else
-        globals.current.lanIp = current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
-    end if
-    return null
+        print(format_columns(toPrint))
+        select = user_input("Select> ").to_int
+        if not typeof(select) == "number" then
+            if forceLocal then return null
+            forceLocal = true
+            continue
+        end if
+        if select > results.len then return null
+        if select < 1 then return null
+        select = select - 1
+        globals.current.obj = results[select].object
+        if not is_lan_ip(targetIp) then globals.current.router = get_router(targetIp)
+        globals.current.folder = libs.toFile(results[select].object)
+        globals.current.user = results[select].user
+        if targetPort == 0 then
+            if is_lan_ip(injectArg) then //first we guess the ip, if the injected string is a lan ip, we assume it is that.
+                globals.current.lanIp = injectArg //this may not be correct.
+                if libs.getFile("/lib/kernel_router.so", current.folder) then globals.current.lanIp = current.router.local_ip //if we find router kernel we set ip to router
+            else
+                globals.current.lanIp = current.router.local_ip //if the injected string is not a lan ip, the correct lan ip must be the router lan ip.
+            end if
+            if current.computer then globals.current.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
+        else
+            globals.current.lanIp = current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
+        end if
+        return null
+    end while
 end function
 commands["lo"] = {"name":"lo", "description":"Local attack.", "args":"[lib_path] [(opt) injectArg]"}
 commands["lo"]["run"] = function(args)
@@ -463,31 +478,44 @@ commands["lo"]["run"] = function(args)
     if args.len > 1 then injectArg = args[1] else injectArg = ""
     metaLib = metaxploit.load(targetPath)
     if not metaLib then return print("Unable to load lib.")
-    exploits = libs.scanLib(metaLib, metaxploit)
-    if not exploits then return print("Unable to scan for exploits.")
-    results = []
-    for e in exploits.memorys
-        for value in e.value
-            object = metaLib.overflow(e.key, value, injectArg)
-            if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
-            result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
-            results = results + [result]
+    forceLocal = false
+    while true
+        exploits = queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
+        //exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
+        if (not exploits) or forceLocal then exploits = localScan(targetPath) //Scan for exploit and send to cloud database thru API
+        if not exploits then return print("Unable to scan for exploits.")
+        results = []
+        for e in exploits.memorys
+            for value in e.value
+                object = metaLib.overflow(e.key, value, injectArg)
+                if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
+                result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
+                results = results + [result]
+            end for
         end for
-    end for
-    toPrint = ""
-    for i in results.indexes
-        toPrint = toPrint + str(i + 1) + ". " + results[i].user + ":" + typeof(results[i].object) + " " + results[i].addr + " " + results[i].valn + char(10)
-    end for
-    print(format_columns(toPrint))
-    select = user_input("Select> ").to_int
-    if not typeof(select) == "number" then return null
-    if select > results.len then return null
-    if select < 1 then return null
-    select = select - 1
-    globals.current.obj = results[select].object
-    globals.current.folder = libs.toFile(results[select].object)
-    globals.current.user = results[select].user
-    return null
+        toPrint = ""
+        for i in results.indexes
+            toPrint = toPrint + str(i + 1) + ". " + results[i].user + ":" + typeof(results[i].object) + " " + results[i].addr + " " + results[i].valn + char(10)
+        end for
+        if not forceLocal then
+            print("Perform a force local scan may find more exploits.")
+            print("Enter ""f"" to do a local scan.")
+        end if
+        print(format_columns(toPrint))
+        select = user_input("Select> ").to_int
+        if not typeof(select) == "number" then
+            if forceLocal then return null
+            forceLocal = true
+            continue
+        end if
+        if select > results.len then return null
+        if select < 1 then return null
+        select = select - 1
+        globals.current.obj = results[select].object
+        globals.current.folder = libs.toFile(results[select].object)
+        globals.current.user = results[select].user
+        return null
+    end while
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
 commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway.
