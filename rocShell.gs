@@ -1,5 +1,7 @@
 clear_screen //if you dont like screen to be cleared remove this line
 
+{"ver":"1.0.0", "api":false} //release. today is huge.
+
 local = {}
 local.shell = get_shell
 local.computer = get_shell.host_computer
@@ -23,44 +25,6 @@ if not crypto then print("missing lib crypto.so in lib or current path")
 metaxploit = include_lib(current_path + "/metaxploit.so")
 if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then print("missing lib metaxploit.so in lib or current path")
-
-if aptclient then //auto metaxploit lib update. remove this whole if block if you dont want this feature.
-    print("Updating metaxploit.so lib, will install metaxploit.so in current path.")
-    if aptclient.search("metaxploit.so").indexOf("not found in") then
-        print("metaxploit.so not found in any repository, generating random hackshop IP, this may take a while...")
-        while true
-            while true //get a random ip
-                ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1)
-                if not is_valid_ip(ip) then continue
-                if is_lan_ip(ip) then continue
-                break
-            end while
-            router = get_router(ip) //check router
-            if not router then continue
-            found = false
-            for lanIp in router.devices_lan_ip
-                ports = router.device_ports(lanIp)
-                for port in ports
-                    if router.port_info(port).split(" ")[0] == "repository" then found = true //check hackshop
-                end for
-            end for
-            if found then break
-        end while
-        print("Hackshop found at: " + ip + ", adding ip to repo list.")
-        if aptclient.add_repo(ip) then
-            print("add_repo failed.")
-        else
-            aptclient.update
-            print("Repo IP added. Updating metaxploit.so lib....")
-        end if
-    end if
-    if aptclient.install("metaxploit.so", current_path) == true then
-        print("Update succeeded.")
-        metaxploit = include_lib(current_path + "/metaxploit.so")
-    else
-        print("Update failed.")
-    end if
-end if
 
 current = {}
 current.obj = local.shell

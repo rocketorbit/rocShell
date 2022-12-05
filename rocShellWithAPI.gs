@@ -1,5 +1,7 @@
 clear_screen //if you dont like screen to be cleared remove this line
 
+{"ver":"1.0.0", "api":true} //release. today is huge.
+
 import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
 
 local = {}
@@ -25,44 +27,6 @@ if not crypto then print("missing lib crypto.so in lib or current path")
 metaxploit = include_lib(current_path + "/metaxploit.so")
 if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then print("missing lib metaxploit.so in lib or current path")
-
-if aptclient then //auto metaxploit lib update. remove this whole if block if you dont want this feature.
-    print("Updating metaxploit.so lib, will install metaxploit.so in current path.")
-    if aptclient.search("metaxploit.so").indexOf("not found in") then
-        print("metaxploit.so not found in any repository, generating random hackshop IP, this may take a while...")
-        while true
-            while true //get a random ip
-                ip = floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1) + "." + floor((rnd * 255) + 1)
-                if not is_valid_ip(ip) then continue
-                if is_lan_ip(ip) then continue
-                break
-            end while
-            router = get_router(ip) //check router
-            if not router then continue
-            found = false
-            for lanIp in router.devices_lan_ip
-                ports = router.device_ports(lanIp)
-                for port in ports
-                    if router.port_info(port).split(" ")[0] == "repository" then found = true //check hackshop
-                end for
-            end for
-            if found then break
-        end while
-        print("Hackshop found at: " + ip + ", adding ip to repo list.")
-        if aptclient.add_repo(ip) then
-            print("add_repo failed.")
-        else
-            aptclient.update
-            print("Repo IP added. Updating metaxploit.so lib....")
-        end if
-    end if
-    if aptclient.install("metaxploit.so", current_path) == true then
-        print("Update succeeded.")
-        metaxploit = include_lib(current_path + "/metaxploit.so")
-    else
-        print("Update failed.")
-    end if
-end if
 
 current = {}
 current.obj = local.shell
@@ -424,7 +388,10 @@ commands["re"]["run"] = function(args)
     while true
         exploits = queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
         //exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
-        if (not exploits) or forceLocal then exploits = remoteScan(targetIp, targetPort) //Scan for exploit and send to cloud database thru API
+        if (not exploits) or forceLocal then
+            exploits = remoteScan(targetIp, targetPort) //Scan for exploit and send to cloud database thru API
+            forceLocal = true
+        end if
         if not exploits then return print("Unable to scan for exploits.")
         results = []
         for e in exploits.memorys
@@ -446,6 +413,7 @@ commands["re"]["run"] = function(args)
         print(format_columns(toPrint))
         select = user_input("Select> ").to_int
         if not typeof(select) == "number" then
+            if not lower(select) == "f" then return null
             if forceLocal then return null
             forceLocal = true
             continue
@@ -466,7 +434,7 @@ commands["re"]["run"] = function(args)
             end if
             if current.computer then globals.current.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
         else
-            globals.current.lanIp = current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
+            if is_lan_ip(targetIp) then globals.current.lanIp = targetIp else globals.current.lanIp = current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
         end if
         return null
     end while
@@ -482,7 +450,10 @@ commands["lo"]["run"] = function(args)
     while true
         exploits = queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
         //exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
-        if (not exploits) or forceLocal then exploits = localScan(targetPath) //Scan for exploit and send to cloud database thru API
+        if (not exploits) or forceLocal then
+            exploits = localScan(targetPath) //Scan for exploit and send to cloud database thru API
+            forceLocal = true
+        end if
         if not exploits then return print("Unable to scan for exploits.")
         results = []
         for e in exploits.memorys
@@ -505,6 +476,7 @@ commands["lo"]["run"] = function(args)
         select = user_input("Select> ").to_int
         if not typeof(select) == "number" then
             if forceLocal then return null
+            if not lower(select) == "f" then return null
             forceLocal = true
             continue
         end if
