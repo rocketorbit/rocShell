@@ -1,6 +1,6 @@
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.1", "api":false} //release. today is huge.
+{"ver":"1.0.2", "api":false} //release. today is huge.
 
 local = {}
 local.shell = get_shell
@@ -126,7 +126,7 @@ libs.allFiles = function(fileObject) //list all file object under a dir
 	while i < files.len
 		if files[i].is_folder then files = files + files[i].get_folders + files[i].get_files
 		i = i + 1
-        if i > 1000 then break //prevent huge file system/recursive file system(new glitch)
+        if i > 200 then break //prevent huge file system
 	end while
 	return files
 end function
