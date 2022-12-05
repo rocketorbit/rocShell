@@ -1,6 +1,6 @@
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.0", "api":true} //release. today is huge.
+{"ver":"1.0.1", "api":true} //release. today is huge.
 
 import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
 
@@ -128,7 +128,7 @@ libs.allFiles = function(fileObject) //list all file object under a dir
 	while i < files.len
 		if files[i].is_folder then files = files + files[i].get_folders + files[i].get_files
 		i = i + 1
-        if i > 1000 then break //prevent huge file system/recursive file system(new glitch)
+        if i > 300 then break //prevent huge file system
 	end while
 	return files
 end function
@@ -136,7 +136,7 @@ libs.find = function(fileName, fileObject) //find files under a dir
     founded = []
     files = self.allFiles(fileObject)
 	for file in files
-		if lower(file.name).indexOf(lower(fileName)) != null then founded = founded + [file.path]
+		if lower(file.name).indexOf(lower(fileName)) != null then founded = founded + [file]
 	end for
 	return founded
 end function
@@ -228,6 +228,12 @@ libs.scanLib = function(metaLib, metaxploit)
         end for
     end for
     return ret
+end function
+libs.typeofFile = function(fileObject)
+    if not typeof(fileObject) == "file" then return null
+    if fileObject.is_folder then return "fld"
+    if fileObject.is_binary then return "bin"
+    return "txt"
 end function
 
 computerCommands = {}
@@ -679,14 +685,7 @@ commands["valn"]["run"] = function(args)
 	files = []
 	for file in allFiles
 		if file.has_permission("r") or file.has_permission("w") or file.has_permission("x") then
-			if file.is_folder then
-				fileType = "fld"
-			else if file.is_binary then
-				fileType = "bin"
-			else
-				fileType = "txt"
-			end if
-			files = files + [fileType + " " + file.path + " " + file.permissions]
+			files = files + [libs.typeofFile(file) + " " + file.path + " " + file.permissions]
 		end if
 	end for
 	output = files.sort.join("\n")
@@ -747,6 +746,18 @@ commands["text"]["run"] = function(args)
         end if
 	end while
 	return print("Done.")
+end function
+commands["find"] = {"name":"find", "description":"Find a file with its name.", "args":"[file]"}
+commands["find"]["run"] = function(args)
+    if args.len < 1 then return print("Usage: find [file]")
+    fileName = args[0]
+	files = libs.find(fileName)
+    output = []
+	for file in files
+		output = output + [libs.typeofFile(file) + " " + file.path]
+	end for
+	output = output.sort.join("\n")
+	return print(output)
 end function
 commands["cat"] = {"name":"cat", "description":"Prints a file.", "args":"[file]"}
 commands["cat"]["run"] = function(args)
