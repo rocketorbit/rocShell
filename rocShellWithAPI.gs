@@ -1,6 +1,6 @@
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.2", "api":true} //release. today is huge.
+{"ver":"1.0.5", "api":true} //release. today is huge.
 
 import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
 
@@ -285,6 +285,30 @@ computerCommands["mkdir"]["run"] = function(args)
     print(doMkdir)
 	return print("Failed.")
 end function
+computerCommands["netinfo"] = {"name":"netinfo", "description":"Display net info", "args":""}
+computerCommands["netinfo"]["run"] = function(args)
+	computer = current.computer
+    print(computer.public_ip)
+    print(computer.local_ip)
+    print(computer.active_net_card)
+    if computer.active_net_card == "WIFI" then
+        netcards = computer.network_devices
+        for netcard in netcards.split(char(10))
+            interface = netcard.split(" ")[0]
+            print(interface)
+            for wifi in computer.wifi_networks(interface)
+                print(wifi)
+            end for
+        end for
+    end if
+	return null
+end function
+computerCommands["wifi"] = {"name":"wifi", "description":"Connect Wifi.", "args":"[device] [bssid] [essid] [password]"}
+computerCommands["wifi"]["run"] = function(args)
+    if args.len < 3 then return print("Usage: wifi [device] [bssid] [essid] [password]")
+	computer = current.computer
+	return print(computer.connect_wifi(args[0], args[1], args[2], args[3]))
+end function
 
 shellCommands = {}
 shellCommands["shell"] = {"name":"shell", "description":"Starts terminal. Watch out for active traces.", "args":"[PID]"}
@@ -387,6 +411,7 @@ commands["re"]["run"] = function(args)
     targetPort = args[1].to_int
     if args.len > 2 then injectArg = args[2] else injectArg = ""
     netSession = metaxploit.net_use(targetIp, targetPort)
+    netSession = metaxploit.net_use(targetIp, targetPort) //this extra line is for some game mechanics
     if not netSession then return print("Unable to make net session.")
     metaLib = netSession.dump_lib
     if not metaLib then return print("Unable to dump lib.")
@@ -773,6 +798,144 @@ commands["cat"]["run"] = function(args)
 	if not toPrint.has_permission("r") then return print("Permission denied.") //check perm
     if toPrint.is_binary or toPrint.is_folder then return print("File not text file.")
 	return print(toPrint.get_content)
+end function
+commands["chmod"] = {"name":"chmod", "description":"Change permission for a file.", "args":"[(opt) -R] [ugo+/-rwx] [path]"}
+commands["chmod"]["run"] = function(args)
+    folderObj = current.folder
+    while folderObj.parent
+        folderObj = folderObj.parent
+    end while
+    if args.len == 2 then
+        toPath = libs.absolutePath(args[1], current.folder.path)
+        isRecursive = false
+        perm = args[0]
+    else if args.len == 3 then
+        toPath = libs.absolutePath(args[2], current.folder.path)
+        isRecursive = true
+        perm = args[1]
+    else
+        return print("Usage: chmod [(opt) -R] [ugo+-rwx] [path]")
+    end if
+    if not toPath then return print("No file specified.")
+    toChmod = libs.getFile(toPath, folderObj)
+	if not typeof(toChmod) == "file" then return print("File not found: " + toPath)
+    users = []
+    if perm.indexOf("u") != null then users.push("u")
+    if perm.indexOf("g") != null then users.push("g")
+    if perm.indexOf("o") != null then users.push("o")
+    if perm.indexOf("+") != null and perm.indexOf("-") == null then
+        action = "+"
+    else if perm.indexOf("+") == null and perm.indexOf("-") != null then
+        action = "-"
+    else
+        return print("Invalid permission.")
+    end if
+    perms = ""
+    if perm.indexOf("r") != null then perms = perms + "r"
+    if perm.indexOf("w") != null then perms = perms + "w"
+    if perm.indexOf("w") != null then perms = perms + "x"
+    doChmod = 2
+    for user in users
+        doChmod = toChmod.chmod(user + action + perms, isRecursive)
+    end for
+    if doChmod and doChmod != 2 then return print(doChmod)
+	return print("Done.")
+end function
+commands["chgrp"] = {"name":"chgrp", "description":"Change group for a file.", "args":"[(opt) -R] [group] [path]"}
+commands["chgrp"]["run"] = function(args)
+    folderObj = current.folder
+    while folderObj.parent
+        folderObj = folderObj.parent
+    end while
+    if args.len == 2 then
+        toPath = libs.absolutePath(args[1], current.folder.path)
+        isRecursive = false
+        grp = args[0]
+    else if args.len == 3 then
+        toPath = libs.absolutePath(args[2], current.folder.path)
+        isRecursive = true
+        grp = args[1]
+    else
+        return print("Usage: chgrp [(opt) -R] [group] [path]")
+    end if
+    if not toPath then return print("No file specified.")
+    toChgrp = libs.getFile(toPath, folderObj)
+	if not typeof(toChgrp) == "file" then return print("File not found: " + toPath)
+    doChgrp = toChgrp.set_group(grp, isRecursive)
+    if doChgrp then return print(doChgrp)
+	return print("Done.")
+end function
+commands["chown"] = {"name":"chown", "description":"Change owner for a file.", "args":"[(opt) -R] [owner] [path]"}
+commands["chown"]["run"] = function(args)
+    folderObj = current.folder
+    while folderObj.parent
+        folderObj = folderObj.parent
+    end while
+    if args.len == 2 then
+        toPath = libs.absolutePath(args[1], current.folder.path)
+        isRecursive = false
+        user = args[0]
+    else if args.len == 3 then
+        toPath = libs.absolutePath(args[2], current.folder.path)
+        isRecursive = true
+        user = args[1]
+    else
+        return print("Usage: chown [(opt) -R] [owner] [path]")
+    end if
+    if not toPath then return print("No file specified.")
+    toChown = libs.getFile(toPath, folderObj)
+	if not typeof(toChown) == "file" then return print("File not found: " + toPath)
+    doChown = toChown.set_owner(user, isRecursive)
+    if doChown then return print(doChown)
+	return print("Done.")
+end function
+commands["cp"] = {"name":"cp", "description":"Copy file.", "args":"[path_from] [path_to]"}
+commands["cp"]["run"] = function(args)
+	if args.len < 2 then return print("Usage: cp [path_from] [path_to].")
+    folderObj = current.folder
+    while folderObj.parent
+        folderObj = folderObj.parent
+    end while
+    fromPath = libs.absolutePath(args[0], current.folder.path)
+    toPath = libs.absolutePath(args[1], current.folder.path)
+    if (not fromPath) or (not toPath) then return print("No file specified.")
+	toCopy = libs.getFile(fromPath, folderObj)
+	if not typeof(toCopy) == "file" then return print("File not found: " + toPath)
+    paths = toPath.split("/")
+    toPathList = []
+    for path in paths
+        if path then toPathList.push(path) //empty string eval to false
+    end for
+    if not toPathList.len then return print("No file specified.")
+	newName = toPathList[-1]
+    if toPathList.len == 1 then toPath = "/" else toPath = "/" + toPathList[:-1].join("/")
+	doCopy = toCopy.copy(toPath, newName)
+    if doCopy then return print(doCopy)
+	return print("Done.")
+end function
+commands["mv"] = {"name":"mv", "description":"Move file.", "args":"[path_from] [path_to]"}
+commands["mv"]["run"] = function(args)
+	if args.len < 2 then return print("Usage: mv [path_from] [path_to].")
+    folderObj = current.folder
+    while folderObj.parent
+        folderObj = folderObj.parent
+    end while
+    fromPath = libs.absolutePath(args[0], current.folder.path)
+    toPath = libs.absolutePath(args[1], current.folder.path)
+    if (not fromPath) or (not toPath) then return print("No file specified.")
+	toMove = libs.getFile(fromPath, folderObj)
+	if not typeof(toMove) == "file" then return print("File not found: " + toPath)
+    paths = toPath.split("/")
+    toPathList = []
+    for path in paths
+        if path then toPathList.push(path) //empty string eval to false
+    end for
+    if not toPathList.len then return print("No file specified.")
+	newName = toPathList[-1]
+    if toPathList.len == 1 then toPath = "/" else toPath = "/" + toPathList[:-1].join("/")
+	doMove = toMove.move(toPath, newName)
+    if doMove then return print(doMove)
+	return print("Done.")
 end function
 commands["rm"] = {"name":"rm", "description":"Delete file.", "args":"[file]"}
 commands["rm"]["run"] = function(args)
