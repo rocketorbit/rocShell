@@ -192,7 +192,7 @@ libs.corruptLog = function(fileObject) //corrupt system log by copy the smallest
 	end for
 	if not logFile then return print("log file not found!")
 	tryDelete = logFile.delete
-	if tryDelete == "" then print("Log file deleted.") else return print("Error: " + deleteLogFile)
+	if tryDelete == "" then print("Log file deleted.") else return print("Error: " + tryDelete)
 	tryCopy = toCopy.copy("/var", "system.log")
 	if tryCopy == true then return print("All steps done. Log cleared.")
 	return print(tryCopy)
