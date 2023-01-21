@@ -1,3 +1,5 @@
+//if params[0] != "password_here" then exit //if you need password protection use this line.
+
 clear_screen //if you dont like screen to be cleared remove this line
 
 {"ver":"1.0.5", "api":true} //release. today is huge.
