@@ -524,7 +524,7 @@ commands["lo"]["run"] = function(args)
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
 commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway.
-	if args.len < 1 then return print("Invalid ip.")
+    if args.len < 1 then return print("Invalid ip.")
     targetIp = args[0]
     if not is_valid_ip(targetIp) then targetIp = nslookup(targetIp)
     if not is_valid_ip(targetIp) then return print("Invalid ip.")
@@ -570,6 +570,7 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
         print(format_columns(info) + "\n")
     else
         router = get_router(targetIp)
+        if not router then return print("router missing on remote machine")
         publicPorts = router.used_ports
         print("\n" + router.essid_name + " (" + router.bssid_name + ")")
         print("Public IP: " + router.public_ip + "  Private IP: " + router.local_ip)
