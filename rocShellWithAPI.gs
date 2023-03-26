@@ -2,7 +2,7 @@
 
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.5", "api":true} //release. today is huge.
+{"ver":"1.0.6", "api":true} //release. today is huge.
 
 import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
 
@@ -237,6 +237,18 @@ libs.typeofFile = function(fileObject)
     if fileObject.is_binary then return "bin"
     return "txt"
 end function
+libs.bruteforce = function(length, charset, username)
+    toDo = [""]
+    while toDo
+        item = toDo.pop
+        for chr in charset
+            newItem = item + chr
+            if get_shell(username, newItem) then return get_shell(username, newItem)
+            if newItem.len < length then toDo.push(newItem)
+        end for
+    end while
+    return null
+end function
 
 computerCommands = {}
 computerCommands["ps"] = {"name":"ps", "description":"List processes running.", "args":""}
@@ -409,7 +421,7 @@ commands["re"]["run"] = function(args)
     if args.len < 2 then return print("Usage: re [ip] [port] [(opt) injectArg]")
     targetIp = args[0]
     if not is_valid_ip(targetIp) then targetIp = nslookup(targetIp)
-    if not is_valid_ip(targetIp) then return print("Invalid ip.")
+    if not targetIp.split(".").len == 4 then return print("Invalid ip.")
     targetPort = args[1].to_int
     if args.len > 2 then injectArg = args[2] else injectArg = ""
     netSession = metaxploit.net_use(targetIp, targetPort)
@@ -458,16 +470,12 @@ commands["re"]["run"] = function(args)
         if not is_lan_ip(targetIp) then globals.current.router = get_router(targetIp)
         globals.current.folder = libs.toFile(results[select].object)
         globals.current.user = results[select].user
-        if targetPort == 0 then
-            if is_lan_ip(injectArg) then //first we guess the ip, if the injected string is a lan ip, we assume it is that.
-                globals.current.lanIp = injectArg //this may not be correct.
-                if libs.getFile("/lib/kernel_router.so", current.folder) then globals.current.lanIp = current.router.local_ip //if we find router kernel we set ip to router
-            else
-                globals.current.lanIp = current.router.local_ip //if the injected string is not a lan ip, the correct lan ip must be the router lan ip.
-            end if
-            if current.computer then globals.current.lanIp = current.computer.local_ip //if we have a shell or a computer, we set the ip to the correct one.
+        if current.computer then
+            globals.current.lanIp = current.computer.local_ip
+        else if not is_lan_ip(targetIp) then
+            globals.current.lanIp = current.router.local_ip
         else
-            if is_lan_ip(targetIp) then globals.current.lanIp = targetIp else globals.current.lanIp = current.router.ping_port(targetPort).get_lan_ip //this may not be correct. TODO
+            globals.current.lanIp = targetIp
         end if
         return null
     end while
@@ -524,7 +532,7 @@ commands["lo"]["run"] = function(args)
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
 commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway.
-    if args.len < 1 then return print("Invalid ip.")
+	if args.len < 1 then return print("Invalid ip.")
     targetIp = args[0]
     if not is_valid_ip(targetIp) then targetIp = nslookup(targetIp)
     if not is_valid_ip(targetIp) then return print("Invalid ip.")
@@ -570,7 +578,6 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
         print(format_columns(info) + "\n")
     else
         router = get_router(targetIp)
-        if not router then return print("router missing on remote machine")
         publicPorts = router.used_ports
         print("\n" + router.essid_name + " (" + router.bssid_name + ")")
         print("Public IP: " + router.public_ip + "  Private IP: " + router.local_ip)
