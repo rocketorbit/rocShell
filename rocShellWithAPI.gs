@@ -33,36 +33,36 @@ if not metaxploit then print("missing lib metaxploit.so in lib or current path")
 current = {}
 current.obj = local.shell
 current.computer = function
-	if typeof(current.obj) == "shell" then return current.obj.host_computer
-	if typeof(current.obj) == "computer" then return current.obj
-	return null
+    if typeof(current.obj) == "shell" then return current.obj.host_computer
+    if typeof(current.obj) == "computer" then return current.obj
+    return null
 end function
 current.router = local.router
 current.folder = local.folder
 current.user = local.user
 current.lanIp = local.lanIp
 current.publicIp = function
-	return current.router.public_ip
+    return current.router.public_ip
 end function
 
 libs = {}
 libs.absolutePath = function(rPath, cPath) //current path + relative path = absolute path
-	if rPath.len == 0 then return print("invalid path.")
-	if rPath[0] == "/" then return rPath
-	if cPath.len == 0 then return print("invalid path.")
-	if not cPath[0] == "/" then return print("invalid path.")
-	if not cPath[-1] == "/" then cPath = cPath + "/"
-	absPath = cPath + rPath
-	while absPath.len > 1 and absPath[-1] == "/"
-		absPath = absPath[:-1]
-	end while
-	return absPath
+    if rPath.len == 0 then return print("invalid path.")
+    if rPath[0] == "/" then return rPath
+    if cPath.len == 0 then return print("invalid path.")
+    if not cPath[0] == "/" then return print("invalid path.")
+    if not cPath[-1] == "/" then cPath = cPath + "/"
+    absPath = cPath + rPath
+    while absPath.len > 1 and absPath[-1] == "/"
+        absPath = absPath[:-1]
+    end while
+    return absPath
 end function
 libs.changeDir = function(toPath, fileObject) //go to another dir
     if not fileObject then fileObject = globals.current.folder
     while fileObject.parent
-		fileObject = fileObject.parent
-	end while
+        fileObject = fileObject.parent
+    end while
     if toPath.len == 0 then return print("File not found.")
     while (toPath.len > 1) and (toPath[-1] == "/") //trim end "/"
         toPath = toPath[:-1]
@@ -73,34 +73,34 @@ libs.changeDir = function(toPath, fileObject) //go to another dir
     if toPath == "/" then return fileObject
     toPath = toPath.split("/")
     for p in toPath
-		found = false
-		for f in fileObject.get_folders
-			if not f.name == p then continue
-			found = true
-			fileObject = f
-			break
-		end for
-		if not found then return print("Folder not found.")
-	end for
+        found = false
+        for f in fileObject.get_folders
+            if not f.name == p then continue
+            found = true
+            fileObject = f
+            break
+        end for
+        if not found then return print("Folder not found.")
+    end for
     if not fileObject.is_folder then return print("Folder not found.")
-	return fileObject
+    return fileObject
 end function
 libs.getFile = function(toPath, fileObject) //changeDir only support folder but this works for both
-	if not fileObject then fileObject = globals.current.folder
+    if not fileObject then fileObject = globals.current.folder
     while fileObject.parent
-		fileObject = fileObject.parent
-	end while
-	if toPath.len == 0 then return print("File not found.")
-	while (toPath.len > 1) and (toPath[-1] == "/") //trim end "/"
+        fileObject = fileObject.parent
+    end while
+    if toPath.len == 0 then return print("File not found.")
+    while (toPath.len > 1) and (toPath[-1] == "/") //trim end "/"
         toPath = toPath[:-1]
     end while
     while (toPath.len > 1) and (toPath[0] == "/") //trim start "/"
         toPath = toPath[1:]
     end while
     if toPath == "/" then return fileObject
-	toPath = toPath.split("/")
+    toPath = toPath.split("/")
     for i in toPath.indexes
-		found = false
+        found = false
         if i == (toPath.len - 1) then
             for f in fileObject.get_folders + fileObject.get_files
                 if not f.name == toPath[i] then continue
@@ -108,39 +108,39 @@ libs.getFile = function(toPath, fileObject) //changeDir only support folder but 
             end for
             return print("File not found")
         end if
-		for f in fileObject.get_folders
-			if not f.name == toPath[i] then continue
-			found = true
-			fileObject = f
-			break
-		end for
-		if not found then return print("File not found.")
-	end for
-	return fileObject
+        for f in fileObject.get_folders
+            if not f.name == toPath[i] then continue
+            found = true
+            fileObject = f
+            break
+        end for
+        if not found then return print("File not found.")
+    end for
+    return fileObject
 end function
 libs.allFiles = function(fileObject) //list all file object under a dir
-	if not fileObject then
-		fileObject = globals.current.folder
-		while fileObject.parent
-			fileObject = fileObject.parent
-		end while
-	end if
-	files = [fileObject] + fileObject.get_folders + fileObject.get_files
-	i = 0
-	while i < files.len
-		if files[i].is_folder then files = files + files[i].get_folders + files[i].get_files
-		i = i + 1
+    if not fileObject then
+        fileObject = globals.current.folder
+        while fileObject.parent
+            fileObject = fileObject.parent
+        end while
+    end if
+    files = [fileObject] + fileObject.get_folders + fileObject.get_files
+    i = 0
+    while i < files.len
+        if files[i].is_folder then files = files + files[i].get_folders + files[i].get_files
+        i = i + 1
         if i > 200 then break //prevent huge file system
-	end while
-	return files
+    end while
+    return files
 end function
 libs.find = function(fileName, fileObject) //find files under a dir
     founded = []
     files = self.allFiles(fileObject)
-	for file in files
-		if lower(file.name).indexOf(lower(fileName)) != null then founded = founded + [file]
-	end for
-	return founded
+    for file in files
+        if lower(file.name).indexOf(lower(fileName)) != null then founded = founded + [file]
+    end for
+    return founded
 end function
 libs.toFile = function(anyObject)
     if typeof(anyObject) == "shell" then return anyObject.host_computer.File("/")
@@ -155,61 +155,61 @@ libs.toFile = function(anyObject)
 end function
 libs.checkAccess = function(fileObject) //check perm for npc machine
     if not typeof(fileObject) == "file" then return null
-	while fileObject.parent
-		fileObject = fileObject.parent
-	end while
-	homeFolder = null
-	for folder in fileObject.get_folders
-		if folder.name == "root" then
-			if folder.has_permission("w") and folder.has_permission("r") and folder.has_permission("x") then return "root"
-		end if
-		if folder.name == "home" then
-			homeFolder = folder
-		end if
-	end for
-	if not homeFolder then return "guest"
-	for folder in homeFolder.get_folders
-		if folder.name == "guest" then continue
-		if folder.has_permission("w") and folder.has_permission("r") and folder.has_permission("x") then return folder.name
-	end for
-	return "guest"
+    while fileObject.parent
+        fileObject = fileObject.parent
+    end while
+    homeFolder = null
+    for folder in fileObject.get_folders
+        if folder.name == "root" then
+            if folder.has_permission("w") and folder.has_permission("r") and folder.has_permission("x") then return "root"
+        end if
+        if folder.name == "home" then
+            homeFolder = folder
+        end if
+    end for
+    if not homeFolder then return "guest"
+    for folder in homeFolder.get_folders
+        if folder.name == "guest" then continue
+        if folder.has_permission("w") and folder.has_permission("r") and folder.has_permission("x") then return folder.name
+    end for
+    return "guest"
 end function
 libs.corruptLog = function(fileObject) //corrupt system log by copy the smallest file to that dir
     if not fileObject then fileObject = current.folder
     while fileObject.parent
-		fileObject = fileObject.parent
-	end while
-	files = self.allFiles(fileObject)
-	toCopy = null
-	for file in files
-		if (not file.is_folder) and file.has_permission("r") then
-			if not toCopy then toCopy = file
-			if val(file.size) < val(toCopy.size) then toCopy = file
-		end if
-	end for
-	if not toCopy then return print("No file to overwrite log! try using ""touch"".")
-	logFile = null
-	for file in files
-		if not file.path == "/var/system.log" then continue
-		logFile = file
-		break
-	end for
-	if not logFile then return print("log file not found!")
-	tryDelete = logFile.delete
-	if tryDelete == "" then print("Log file deleted.") else return print("Error: " + tryDelete)
-	tryCopy = toCopy.copy("/var", "system.log")
-	if tryCopy == true then return print("All steps done. Log cleared.")
-	return print(tryCopy)
+        fileObject = fileObject.parent
+    end while
+    files = self.allFiles(fileObject)
+    toCopy = null
+    for file in files
+        if (not file.is_folder) and file.has_permission("r") then
+            if not toCopy then toCopy = file
+            if val(file.size) < val(toCopy.size) then toCopy = file
+        end if
+    end for
+    if not toCopy then return print("No file to overwrite log! try using ""touch"".")
+    logFile = null
+    for file in files
+        if not file.path == "/var/system.log" then continue
+        logFile = file
+        break
+    end for
+    if not logFile then return print("log file not found!")
+    tryDelete = logFile.delete
+    if tryDelete == "" then print("Log file deleted.") else return print("Error: " + tryDelete)
+    tryCopy = toCopy.copy("/var", "system.log")
+    if tryCopy == true then return print("All steps done. Log cleared.")
+    return print(tryCopy)
 end function
 libs.fileSize = function(bytes) //translate byte to kb and mb
-	bytes = bytes.to_int
-	i = 0
-	units = ["B","KB","MB","GB","TB","PT"]
-	while bytes > 1024
-		bytes = bytes / 1024
-		i = i + 1
-	end while
-	return round(bytes, 2) + units[i]
+    bytes = bytes.to_int
+    i = 0
+    units = ["B","KB","MB","GB","TB","PT"]
+    while bytes > 1024
+        bytes = bytes / 1024
+        i = i + 1
+    end while
+    return round(bytes, 2) + units[i]
 end function
 libs.scanLib = function(metaLib, metaxploit)
     if not metaLib then return null
@@ -255,53 +255,53 @@ computerCommands["ps"] = {"name":"ps", "description":"List processes running.", 
 computerCommands["ps"]["run"] = function(args)
     computer = current.computer
     procs = computer.show_procs
-	procs = procs.split("\n")
-	output = ""
-	for proc in procs
-		val = proc.split(" ")
-		if val[0] == "USER" then continue
-		output = output + "\n" + "[" + val[0] + "] (" + val[1] + ") " + val[4] + " " + "CPU: [" + val[2] + "] " + "MEM: [" + val[3] + "]"
-	end for
+    procs = procs.split("\n")
+    output = ""
+    for proc in procs
+        val = proc.split(" ")
+        if val[0] == "USER" then continue
+        output = output + "\n" + "[" + val[0] + "] (" + val[1] + ") " + val[4] + " " + "CPU: [" + val[2] + "] " + "MEM: [" + val[3] + "]"
+    end for
     return print(format_columns(output) + "\n")
 end function
 computerCommands["kill"] = {"name":"kill", "description":"Kill a process.", "args":"[PID]"}
 computerCommands["kill"]["run"] = function(args)
-	if args.len < 1 then return print("Usage: kill [PID]")
-	PID = args[0].to_int
-	if typeof(PID) != "number" then return print("The PID must be a number.")
-	computer = current.computer
-	output = computer.close_program(PID) //close PID
-	if output == true then return print("Process " + PID + " closed")
-	if output then return print(output)
-	return print("Process " + PID + " not found")
+    if args.len < 1 then return print("Usage: kill [PID]")
+    PID = args[0].to_int
+    if typeof(PID) != "number" then return print("The PID must be a number.")
+    computer = current.computer
+    output = computer.close_program(PID) //close PID
+    if output == true then return print("Process " + PID + " closed")
+    if output then return print(output)
+    return print("Process " + PID + " not found")
 end function
 computerCommands["touch"] = {"name":"touch", "description":"Create a text file.", "args":"[file_path]"}
 computerCommands["touch"]["run"] = function(args)
-	if args.len < 1 then return print("Usage: touch [file_name]")
-	path = libs.absolutePath(args[0], current.folder.path)
+    if args.len < 1 then return print("Usage: touch [file_name]")
+    path = libs.absolutePath(args[0], current.folder.path)
     if path == null then return print("path not found")
     parent = parent_path(path)
     name = path.split("/")[-1]
-	doTouch = current.computer.touch(parent, name)
+    doTouch = current.computer.touch(parent, name)
     if doTouch == true then return print("Done.")
     print(doTouch)
-	return print("Failed.")
+    return print("Failed.")
 end function
 computerCommands["mkdir"] = {"name":"mkdir", "description":"Create a empty folder.", "args":"[folder_path]"}
 computerCommands["mkdir"]["run"] = function(args)
-	if args.len < 1 then return print("Usage: mkdir [folder_path]")
-	path = libs.absolutePath(args[0], current.folder.path)
+    if args.len < 1 then return print("Usage: mkdir [folder_path]")
+    path = libs.absolutePath(args[0], current.folder.path)
     if path == null then return print("path not found")
     parent = parent_path(path)
     name = path.split("/")[-1]
-	doMkdir = current.computer.create_folder(parent, name)
+    doMkdir = current.computer.create_folder(parent, name)
     if doMkdir == true then return print("Done.")
     print(doMkdir)
-	return print("Failed.")
+    return print("Failed.")
 end function
 computerCommands["netinfo"] = {"name":"netinfo", "description":"Display net info", "args":""}
 computerCommands["netinfo"]["run"] = function(args)
-	computer = current.computer
+    computer = current.computer
     print(computer.public_ip)
     print(computer.local_ip)
     print(computer.active_net_card)
@@ -315,19 +315,19 @@ computerCommands["netinfo"]["run"] = function(args)
             end for
         end for
     end if
-	return null
+    return null
 end function
 computerCommands["wifi"] = {"name":"wifi", "description":"Connect Wifi.", "args":"[device] [bssid] [essid] [password]"}
 computerCommands["wifi"]["run"] = function(args)
     if args.len < 3 then return print("Usage: wifi [device] [bssid] [essid] [password]")
-	computer = current.computer
-	return print(computer.connect_wifi(args[0], args[1], args[2], args[3]))
+    computer = current.computer
+    return print(computer.connect_wifi(args[0], args[1], args[2], args[3]))
 end function
 
 shellCommands = {}
 shellCommands["shell"] = {"name":"shell", "description":"Starts terminal. Watch out for active traces.", "args":"[PID]"}
 shellCommands["shell"]["run"] = function(args)
-	return current.obj.start_terminal
+    return current.obj.start_terminal
 end function
 shellCommands["ssh"] = {"name":"ssh", "description":"Connect to a ssh service. I hate ftp.", "args":"[user@password] [ip] [(opt) port]"}
 shellCommands["ssh"]["run"] = function(args)
@@ -356,16 +356,16 @@ shellCommands["up"]["run"] = function(args)
     if args.len < 2 then return print("Usage: up [local_file_path] [remote_path].")
     localShell = local.shell
     remoteShell = current.obj
-	pathFrom = args[0]
-	pathTo = args[1]
-	fileFrom = globals.local.computer.File(pathFrom) //get file
-	folderTo = globals.current.obj.host_computer.File(pathTo) //get folder
-	if not folderTo then return print("Remote directory not found.") //check if folder exists
-	if not folderTo.is_folder then return print("Remote directory not found.") //check if folder exists
-	if not fileFrom then return print("Local file not found: " + pathFrom) //not found print error msg
-	print("Uploading file: " + fileFrom.name + " to: " + pathTo) //found print target path
-	upload = localShell.scp(pathFrom, pathTo, remoteShell) //func call as upload
-	if not typeof(upload) == "string" then return print("File uploaded successfully.")
+    pathFrom = args[0]
+    pathTo = args[1]
+    fileFrom = globals.local.computer.File(pathFrom) //get file
+    folderTo = globals.current.obj.host_computer.File(pathTo) //get folder
+    if not folderTo then return print("Remote directory not found.") //check if folder exists
+    if not folderTo.is_folder then return print("Remote directory not found.") //check if folder exists
+    if not fileFrom then return print("Local file not found: " + pathFrom) //not found print error msg
+    print("Uploading file: " + fileFrom.name + " to: " + pathTo) //found print target path
+    upload = localShell.scp(pathFrom, pathTo, remoteShell) //func call as upload
+    if not typeof(upload) == "string" then return print("File uploaded successfully.")
     return print(upload)
 end function
 shellCommands["dl"] = {"name":"dl", "description":"download a file.", "args":"[remote_file_path] [local_path]"}
@@ -373,16 +373,16 @@ shellCommands["dl"]["run"] = function(args)
     localShell = local.shell
     remoteShell = current.obj
     if args.len < 2 then return print("Usage: dl [remote_file_path] [local_path].")
-	pathFrom = args[0]
-	pathTo = args[1]
-	fileFrom = globals.current.obj.host_computer.File(pathFrom)//get file
-	folderTo = globals.local.computer.File(pathTo) //get folder
-	if not folderTo then return print("Local directory not found.") //check if folder exists
-	if not folderTo.is_folder then return print("Local directory not found.") //check if folder exists
-	if not fileFrom then return print("Remote file not found: " + pathFrom) //not found print error msg
-	print("Downloading file: " + fileFrom.name + " to: " + pathTo) //found print target path
-	download = remoteShell.scp(pathFrom, pathTo, localShell) //func call as download
-	if not typeof(download) == "string" then return print("File uploaded successfully.")
+    pathFrom = args[0]
+    pathTo = args[1]
+    fileFrom = globals.current.obj.host_computer.File(pathFrom)//get file
+    folderTo = globals.local.computer.File(pathTo) //get folder
+    if not folderTo then return print("Local directory not found.") //check if folder exists
+    if not folderTo.is_folder then return print("Local directory not found.") //check if folder exists
+    if not fileFrom then return print("Remote file not found: " + pathFrom) //not found print error msg
+    print("Downloading file: " + fileFrom.name + " to: " + pathTo) //found print target path
+    download = remoteShell.scp(pathFrom, pathTo, localShell) //func call as download
+    if not typeof(download) == "string" then return print("File uploaded successfully.")
     return print(download)
 end function
 shellCommands["run"] = {"name":"run", "description":"Execute a program.", "args":"[path] [(opt) params]"}
@@ -421,7 +421,7 @@ commands["re"]["run"] = function(args)
     if args.len < 2 then return print("Usage: re [ip] [port] [(opt) injectArg]")
     targetIp = args[0]
     if not is_valid_ip(targetIp) then targetIp = nslookup(targetIp)
-    if not targetIp.split(".").len == 4 then return print("Invalid ip.")
+    if not is_valid_ip(targetIp) then return print("Invalid ip.")
     targetPort = args[1].to_int
     if args.len > 2 then injectArg = args[2] else injectArg = ""
     netSession = metaxploit.net_use(targetIp, targetPort)
@@ -532,7 +532,7 @@ commands["lo"]["run"] = function(args)
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
 commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway.
-	if args.len < 1 then return print("Invalid ip.")
+    if args.len < 1 then return print("Invalid ip.")
     targetIp = args[0]
     if not is_valid_ip(targetIp) then targetIp = nslookup(targetIp)
     if not is_valid_ip(targetIp) then return print("Invalid ip.")
@@ -637,7 +637,7 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
 end function
 commands["cd"] = {"name":"cd", "description":"Moves to a different directory.", "args":"[(opt) path]"}
 commands["cd"]["run"] = function(args)
-	if args.len < 1 then
+    if args.len < 1 then
         if current.user == "root" then toPath = "/root" else toPath = "/home/" + current.user
     else
         if args[0] == "." then return null
@@ -652,13 +652,13 @@ commands["cd"]["run"] = function(args)
     while folderObj.parent
         folderObj = folderObj.parent
     end while
-	toFolder = libs.changeDir(toPath, folderObj)
-	if not typeof(toFolder) == "file" then
+    toFolder = libs.changeDir(toPath, folderObj)
+    if not typeof(toFolder) == "file" then
         if args.len < 1 then globals.current.folder = folderObj else print("No such directory.")
         return null
     end if
-	if not toFolder.is_folder then return print("No such directory.")
-	globals.current.folder = toFolder
+    if not toFolder.is_folder then return print("No such directory.")
+    globals.current.folder = toFolder
     return true
 end function
 commands["ls"] = {"name":"ls", "description":"List all files.", "args":"[(opt) path]"}
@@ -695,81 +695,81 @@ commands["ls"]["run"] = function(args)
 end function
 commands["help"] = {"name":"help", "description":"List all commands.", "args":""}
 commands["help"]["run"] = function(args)
-	output = "\n" + typeof(current.obj) + " commands:" + "\n"
-	for command in commands
-		commandData = command.value
-		output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
-	end for
-	if typeof(current.obj) == "computer" or typeof(current.obj) == "shell" then
-		for command in computerCommands
-			commandData = command.value
-			output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
-		end for
-		if typeof(current.obj) == "shell" then
-			for command in shellCommands
-				commandData = command.value
-				output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
-			end for
-		end if
-	end if
-	return print(output)
+    output = "\n" + typeof(current.obj) + " commands:" + "\n"
+    for command in commands
+        commandData = command.value
+        output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+    end for
+    if typeof(current.obj) == "computer" or typeof(current.obj) == "shell" then
+        for command in computerCommands
+            commandData = command.value
+            output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+        end for
+        if typeof(current.obj) == "shell" then
+            for command in shellCommands
+                commandData = command.value
+                output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+            end for
+        end if
+    end if
+    return print(output)
 end function
 commands["valn"] = {"name":"valn", "description":"List file with vulnerable permission.", "args":""}
 commands["valn"]["run"] = function(args)
-	allFiles = libs.allFiles
-	files = []
-	for file in allFiles
-		if file.has_permission("r") or file.has_permission("w") or file.has_permission("x") then
-			files = files + [libs.typeofFile(file) + " " + file.path + " " + file.permissions]
-		end if
-	end for
-	output = files.sort.join("\n")
-	return print(output)
+    allFiles = libs.allFiles
+    files = []
+    for file in allFiles
+        if file.has_permission("r") or file.has_permission("w") or file.has_permission("x") then
+            files = files + [libs.typeofFile(file) + " " + file.path + " " + file.permissions]
+        end if
+    end for
+    output = files.sort.join("\n")
+    return print(output)
 end function
 commands["text"] = {"name":"text", "description":"Text Editor. Will clear screen to display text.", "args":"[path_to_text]"}
 commands["text"]["run"] = function(args)
-	if args.len < 1 then return print("Invalid arguments!")
-	pathText = libs.absolutePath(args[0], current.folder.path)
-	if not pathText then return print("File not found.")
-	textFile = libs.getFile(pathText)
-	if not textFile then return print("File not found.")
-	if textFile.is_binary or textFile.is_folder then return print("File not text.")
-	text = textFile.get_content
-	lines = text.split(char(10))
-	while true
-		clear_screen
-		for i in lines.indexes
-			line = "<color=orange>" + str(i + 1) + "</color>" + char(9)
-			line = line + lines[i]
-			print(line)
-		end for
-		print("x: save and exit, s: save, q: exit, i: insert, m: modify, r: remove")
-		option = user_input("> ", false, true)
-		if option.lower == "s" or option.lower == "x" then textFile.set_content(lines.join(char(10)))
-		if option.lower == "q" or option.lower == "x" then break
-		if option.lower == "i" then
-			print("specify line number, c to cancel.")
-			lineNum = user_input("> ").to_int
+    if args.len < 1 then return print("Invalid arguments!")
+    pathText = libs.absolutePath(args[0], current.folder.path)
+    if not pathText then return print("File not found.")
+    textFile = libs.getFile(pathText)
+    if not textFile then return print("File not found.")
+    if textFile.is_binary or textFile.is_folder then return print("File not text.")
+    text = textFile.get_content
+    lines = text.split(char(10))
+    while true
+        clear_screen
+        for i in lines.indexes
+            line = "<color=orange>" + str(i + 1) + "</color>" + char(9)
+            line = line + lines[i]
+            print(line)
+        end for
+        print("x: save and exit, s: save, q: exit, i: insert, m: modify, r: remove")
+        option = user_input("> ", false, true)
+        if option.lower == "s" or option.lower == "x" then textFile.set_content(lines.join(char(10)))
+        if option.lower == "q" or option.lower == "x" then break
+        if option.lower == "i" then
+            print("specify line number, c to cancel.")
+            lineNum = user_input("> ").to_int
             newText = user_input("input text:" + char(10))
-			if not lineNum isa number then continue
+            if not lineNum isa number then continue
             if lineNum >= lines.len then lineNum = lines.len
             if lineNum < 0 then lineNum = 0
             lines = lines[:lineNum] + [newText] + lines[lineNum:]
             continue
-		end if
+        end if
         if option.lower == "m" then
-			print("specify line number, c to cancel.")
-			lineNum = user_input("> ").to_int
+            print("specify line number, c to cancel.")
+            lineNum = user_input("> ").to_int
             newText = user_input("input text:" + char(10))
-			if not lineNum isa number then continue
+            if not lineNum isa number then continue
             if lineNum > lines.len then lineNum = lines.len
             if lineNum < 1 then lineNum = 1
             lines[lineNum - 1] = newText
             continue
-		end if
+        end if
         if option.lower == "r" then
             print("specify line number, c to cancel.")
-			lineNum = user_input("> ").to_int
+            lineNum = user_input("> ").to_int
             if not lineNum isa number then continue
             if lineNum < 1 or lineNum > lines.len then continue
             if lines.len == 1 then
@@ -779,35 +779,35 @@ commands["text"]["run"] = function(args)
             lines = lines[:lineNum - 1] + lines[lineNum:]
             continue
         end if
-	end while
-	return print("Done.")
+    end while
+    return print("Done.")
 end function
 commands["find"] = {"name":"find", "description":"Find a file with its name.", "args":"[file]"}
 commands["find"]["run"] = function(args)
     if args.len < 1 then return print("Usage: find [file]")
     fileName = args[0]
-	files = libs.find(fileName)
+    files = libs.find(fileName)
     output = []
-	for file in files
-		output = output + [libs.typeofFile(file) + " " + file.path]
-	end for
-	output = output.sort.join("\n")
-	return print(output)
+    for file in files
+        output = output + [libs.typeofFile(file) + " " + file.path]
+    end for
+    output = output.sort.join("\n")
+    return print(output)
 end function
 commands["cat"] = {"name":"cat", "description":"Prints a file.", "args":"[file]"}
 commands["cat"]["run"] = function(args)
-	if args.len < 1 then return print("No file specified.")
+    if args.len < 1 then return print("No file specified.")
     folderObj = current.folder
     while folderObj.parent
         folderObj = folderObj.parent
     end while
     toPath = libs.absolutePath(args[0], current.folder.path)
     if not toPath then return print("No file specified.")
-	toPrint = libs.getFile(toPath, folderObj)
-	if not typeof(toPrint) == "file" then return print("File not found: " + toPath)
-	if not toPrint.has_permission("r") then return print("Permission denied.") //check perm
+    toPrint = libs.getFile(toPath, folderObj)
+    if not typeof(toPrint) == "file" then return print("File not found: " + toPath)
+    if not toPrint.has_permission("r") then return print("Permission denied.") //check perm
     if toPrint.is_binary or toPrint.is_folder then return print("File not text file.")
-	return print(toPrint.get_content)
+    return print(toPrint.get_content)
 end function
 commands["chmod"] = {"name":"chmod", "description":"Change permission for a file.", "args":"[(opt) -R] [ugo+/-rwx] [path]"}
 commands["chmod"]["run"] = function(args)
@@ -828,7 +828,7 @@ commands["chmod"]["run"] = function(args)
     end if
     if not toPath then return print("No file specified.")
     toChmod = libs.getFile(toPath, folderObj)
-	if not typeof(toChmod) == "file" then return print("File not found: " + toPath)
+    if not typeof(toChmod) == "file" then return print("File not found: " + toPath)
     users = []
     if perm.indexOf("u") != null then users.push("u")
     if perm.indexOf("g") != null then users.push("g")
@@ -849,7 +849,7 @@ commands["chmod"]["run"] = function(args)
         doChmod = toChmod.chmod(user + action + perms, isRecursive)
     end for
     if doChmod and doChmod != 2 then return print(doChmod)
-	return print("Done.")
+    return print("Done.")
 end function
 commands["chgrp"] = {"name":"chgrp", "description":"Change group for a file.", "args":"[(opt) -R] [group] [path]"}
 commands["chgrp"]["run"] = function(args)
@@ -870,10 +870,10 @@ commands["chgrp"]["run"] = function(args)
     end if
     if not toPath then return print("No file specified.")
     toChgrp = libs.getFile(toPath, folderObj)
-	if not typeof(toChgrp) == "file" then return print("File not found: " + toPath)
+    if not typeof(toChgrp) == "file" then return print("File not found: " + toPath)
     doChgrp = toChgrp.set_group(grp, isRecursive)
     if doChgrp then return print(doChgrp)
-	return print("Done.")
+    return print("Done.")
 end function
 commands["chown"] = {"name":"chown", "description":"Change owner for a file.", "args":"[(opt) -R] [owner] [path]"}
 commands["chown"]["run"] = function(args)
@@ -894,14 +894,14 @@ commands["chown"]["run"] = function(args)
     end if
     if not toPath then return print("No file specified.")
     toChown = libs.getFile(toPath, folderObj)
-	if not typeof(toChown) == "file" then return print("File not found: " + toPath)
+    if not typeof(toChown) == "file" then return print("File not found: " + toPath)
     doChown = toChown.set_owner(user, isRecursive)
     if doChown then return print(doChown)
-	return print("Done.")
+    return print("Done.")
 end function
 commands["cp"] = {"name":"cp", "description":"Copy file.", "args":"[path_from] [path_to]"}
 commands["cp"]["run"] = function(args)
-	if args.len < 2 then return print("Usage: cp [path_from] [path_to].")
+    if args.len < 2 then return print("Usage: cp [path_from] [path_to].")
     folderObj = current.folder
     while folderObj.parent
         folderObj = folderObj.parent
@@ -909,23 +909,23 @@ commands["cp"]["run"] = function(args)
     fromPath = libs.absolutePath(args[0], current.folder.path)
     toPath = libs.absolutePath(args[1], current.folder.path)
     if (not fromPath) or (not toPath) then return print("No file specified.")
-	toCopy = libs.getFile(fromPath, folderObj)
-	if not typeof(toCopy) == "file" then return print("File not found: " + toPath)
+    toCopy = libs.getFile(fromPath, folderObj)
+    if not typeof(toCopy) == "file" then return print("File not found: " + toPath)
     paths = toPath.split("/")
     toPathList = []
     for path in paths
         if path then toPathList.push(path) //empty string eval to false
     end for
     if not toPathList.len then return print("No file specified.")
-	newName = toPathList[-1]
+    newName = toPathList[-1]
     if toPathList.len == 1 then toPath = "/" else toPath = "/" + toPathList[:-1].join("/")
-	doCopy = toCopy.copy(toPath, newName)
+    doCopy = toCopy.copy(toPath, newName)
     if doCopy then return print(doCopy)
-	return print("Done.")
+    return print("Done.")
 end function
 commands["mv"] = {"name":"mv", "description":"Move file.", "args":"[path_from] [path_to]"}
 commands["mv"]["run"] = function(args)
-	if args.len < 2 then return print("Usage: mv [path_from] [path_to].")
+    if args.len < 2 then return print("Usage: mv [path_from] [path_to].")
     folderObj = current.folder
     while folderObj.parent
         folderObj = folderObj.parent
@@ -933,51 +933,51 @@ commands["mv"]["run"] = function(args)
     fromPath = libs.absolutePath(args[0], current.folder.path)
     toPath = libs.absolutePath(args[1], current.folder.path)
     if (not fromPath) or (not toPath) then return print("No file specified.")
-	toMove = libs.getFile(fromPath, folderObj)
-	if not typeof(toMove) == "file" then return print("File not found: " + toPath)
+    toMove = libs.getFile(fromPath, folderObj)
+    if not typeof(toMove) == "file" then return print("File not found: " + toPath)
     paths = toPath.split("/")
     toPathList = []
     for path in paths
         if path then toPathList.push(path) //empty string eval to false
     end for
     if not toPathList.len then return print("No file specified.")
-	newName = toPathList[-1]
+    newName = toPathList[-1]
     if toPathList.len == 1 then toPath = "/" else toPath = "/" + toPathList[:-1].join("/")
-	doMove = toMove.move(toPath, newName)
+    doMove = toMove.move(toPath, newName)
     if doMove then return print(doMove)
-	return print("Done.")
+    return print("Done.")
 end function
 commands["rm"] = {"name":"rm", "description":"Delete file.", "args":"[file]"}
 commands["rm"]["run"] = function(args)
-	if args.len < 1 then return print("No file specified.")
+    if args.len < 1 then return print("No file specified.")
     folderObj = current.folder
     while folderObj.parent
         folderObj = folderObj.parent
     end while
     toPath = libs.absolutePath(args[0], current.folder.path)
     if not toPath then return print("No file specified.")
-	toDelete = libs.getFile(toPath, folderObj)
-	if not typeof(toDelete) == "file" then return print("File not found: " + toPath)
-	if not toDelete.has_permission("w") then return print("Permission denied.") //check perm
-	toDelete.delete //delete file
-	return print("File deleted.") //output
+    toDelete = libs.getFile(toPath, folderObj)
+    if not typeof(toDelete) == "file" then return print("File not found: " + toPath)
+    if not toDelete.has_permission("w") then return print("Permission denied.") //check perm
+    toDelete.delete //delete file
+    return print("File deleted.") //output
 end function
 commands["hash"] = {"name":"hash", "description":"Reverse hash. Split multiple lines with commas or line breaks.", "args":"[hash]"}
 commands["hash"]["run"] = function(args)
-	if not crypto then return print("Error: crypto.so not loaded!")
-	if args.len != 1 then return print("Invalid arguments!")
-	hashes = []
-	passes = args[0]
-	passes = passes.split(char(10))
-	for i in passes.indexes
-		passes[i] = passes[i].split(",")
-		for j in passes[i].indexes
-			passes[i][j] = passes[i][j].split(";")
-			for k in passes[i][j].indexes
-				hashes = hashes + [passes[i][j][k]]
-			end for
-		end for
-	end for
+    if not crypto then return print("Error: crypto.so not loaded!")
+    if args.len != 1 then return print("Invalid arguments!")
+    hashes = []
+    passes = args[0]
+    passes = passes.split(char(10))
+    for i in passes.indexes
+        passes[i] = passes[i].split(",")
+        for j in passes[i].indexes
+            passes[i][j] = passes[i][j].split(";")
+            for k in passes[i][j].indexes
+                hashes = hashes + [passes[i][j][k]]
+            end for
+        end for
+    end for
     for hsh in hashes
         hsh = hsh.split(":")
         if hsh.len > 0 then arg = hsh[0]
@@ -986,11 +986,11 @@ commands["hash"]["run"] = function(args)
         if hsh.len > 1 then ret = hsh[0] + ":" + ret
         print(ret)
     end for
-	return print("All hash done.")
+    return print("All hash done.")
 end function
 commands["clog"] = {"name":"clog", "description":"Clear log.", "args":""}
 commands["clog"]["run"] = function(args)
-	tryClearLog = libs.corruptLog(current.folder)
+    tryClearLog = libs.corruptLog(current.folder)
     if not tryClearLog then return print("Failed.")
     return print("Done.")
 end function
@@ -1001,43 +1001,43 @@ commands["local"]["run"] = function(args)
     globals.current.folder = local.folder
     globals.current.user = local.user
     globals.current.lanIp = local.lanIp
-	return null
+    return null
 end function
 commands["clear"] = {"name":"clear", "description":"Clear screen.", "args":""}
 commands["clear"]["run"] = function(args)
-	return clear_screen
+    return clear_screen
 end function
 
 execute = function(input)
-	cmd = input.split(" ")
-	cmdName = cmd[0]
-	args = cmd[1:]
-	Commands = commands
-	if typeof(current.obj) == "computer" or typeof(current.obj) == "shell" then
-		Commands = Commands + computerCommands
-		if typeof(current.obj) == "shell" then Commands = Commands + shellCommands
-	end if
-	if not Commands.hasIndex(cmdName.lower) then return print("Error: Command not found!")
-	command = Commands[cmdName.lower]
-	if args.len > 0 then
-		if args[0] == "-h" or args[0] == "--help" then
-			return print("Usage :" + command.name + " " + command.args.trim + " -> " + command.description + "\n")
-		end if
-	end if
-	command.run(args)
-	return null
+    cmd = input.split(" ")
+    cmdName = cmd[0]
+    args = cmd[1:]
+    Commands = commands
+    if typeof(current.obj) == "computer" or typeof(current.obj) == "shell" then
+        Commands = Commands + computerCommands
+        if typeof(current.obj) == "shell" then Commands = Commands + shellCommands
+    end if
+    if not Commands.hasIndex(cmdName.lower) then return print("Error: Command not found!")
+    command = Commands[cmdName.lower]
+    if args.len > 0 then
+        if args[0] == "-h" or args[0] == "--help" then
+            return print("Usage :" + command.name + " " + command.args.trim + " -> " + command.description + "\n")
+        end if
+    end if
+    command.run(args)
+    return null
 end function
 
 main = function()
-	while true
-		print("<color=white>――</color><color=yellow>(</color>" + current.user + "<color=white>:</color>" + typeof(current.obj) + "<color=white>@</color>" + current.publicIp + "<color=white>~</color>" + current.lanIp + "<color=yellow>)</color><color=white>―</color><color=yellow>[</color>" + current.folder.path + "<color=yellow>]</color>")
-		if current.user == "root" then
-			input = user_input("<color=white>―</color><color=red>#</color> ")
-		else
-			input = user_input("<color=white>―</color><color=yellow>$</color> ")
-		end if
-		execute(input)
-	end while
-	return null
+    while true
+        print("<color=white>――</color><color=yellow>(</color>" + current.user + "<color=white>:</color>" + typeof(current.obj) + "<color=white>@</color>" + current.publicIp + "<color=white>~</color>" + current.lanIp + "<color=yellow>)</color><color=white>―</color><color=yellow>[</color>" + current.folder.path + "<color=yellow>]</color>")
+        if current.user == "root" then
+            input = user_input("<color=white>―</color><color=red>#</color> ")
+        else
+            input = user_input("<color=white>―</color><color=yellow>$</color> ")
+        end if
+        execute(input)
+    end while
+    return null
 end function
 main
