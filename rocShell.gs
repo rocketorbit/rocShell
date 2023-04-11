@@ -438,7 +438,6 @@ if params[0] == ""sudo"" then
     exit({""shell"":""Done."", ""null"":""invalid user/pass.""}[typeof(interface.shell)])
 else if params[0] == ""exploit"" then
     if params.len < 2 then exit(""exploit mode need lib path."")
-    if params.len > 2 then injectArg = params[2] else injectArg = """"
     metaxploit = include_lib(current_path + ""/metaxploit.so"")
     if not metaxploit then metaxploit = include_lib(""/lib/metaxploit.so"")
     if not metaxploit then exit(""metaxploit.so not found"")
@@ -479,6 +478,7 @@ end if
         if version(@unsecureVariables["value"]) then
             metaLib = @unsecureVariables["value"]
             exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
+            injectArg = user_input("inject password: ")
             for e in exploits.memorys
                 print("<color=red>" + e.key + "</color>")
                 for value in e.value
