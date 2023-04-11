@@ -490,7 +490,7 @@ end if
                     object = metaLib.overflow(e.key, value, injectArg)
                     if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
                     result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value, "localIp":current.lanIp, "publicIp":current.publicIp, "router":current.router}
-                    results.push(result)
+                    objects.push(result)
                 end for
             end for
         end if
