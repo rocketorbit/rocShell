@@ -2,7 +2,7 @@
 
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.6", "api":false} //release. today is huge.
+{"ver":"1.0.7", "api":false} //release. today is huge.
 
 local = {}
 local.shell = get_shell
@@ -116,21 +116,17 @@ libs.getFile = function(toPath, fileObject) //changeDir only support folder but 
     end for
     return fileObject
 end function
-libs.allFiles = function(fileObject) //list all file object under a dir
-    if not fileObject then
-        fileObject = globals.current.folder
-        while fileObject.parent
-            fileObject = fileObject.parent
-        end while
-    end if
-    files = [fileObject] + fileObject.get_folders + fileObject.get_files
-    i = 0
-    while i < files.len
-        if files[i].is_folder then files = files + files[i].get_folders + files[i].get_files
-        i = i + 1
-        if i > 200 then break //prevent huge file system
+libs.allFiles = function(fileObject, maxDepth = -1)
+    if fileObject.is_folder then total = {"ret":[fileObject], "stack":[maxDepth, fileObject]} else return [fileObject]
+    while total.stack
+        c = {"folder":total.stack.pop, "maxDepth":total.stack.pop}
+        if c.maxDepth then total.ret = total.ret + c.folder.get_folders + c.folder.get_files else continue
+        folders = c.folder.get_folders
+        for i in range(len(folders) - 1)
+            if folders then [total.stack.push(c.maxDepth - 1), total.stack.push(folders[i])] else break
+        end for
     end while
-    return files
+    return total.ret
 end function
 libs.find = function(fileName, fileObject) //find files under a dir
     founded = []
@@ -172,26 +168,34 @@ libs.checkAccess = function(fileObject) //check perm for npc machine
     end for
     return "guest"
 end function
-libs.corruptLog = function(fileObject) //corrupt system log by copy the smallest file to that dir
+libs.checkIp = function(anyObject, targetIp, targetPort, currentRouter)
+    if typeof(anyObject) != "shell" and typeof(anyObject) != "computer" and typeof(anyObject) != "file" then return null
+    if not is_valid_ip(targetIp) then return null
+    if typeof(targetPort) != "number" then return null
+    if typeof(currentRouter) != "router" then return null
+    if typeof(anyObject) == "shell" then return {"localIp":anyObject.host_computer.local_ip, "publicIp":anyObject.host_computer.public_ip, "router":get_router(anyObject.host_computer.public_ip)}
+    if typeof(anyObject) == "computer" then return {"localIp":anyObject.local_ip, "publicIp":anyObject.public_ip, "router":get_router(anyObject.public_ip)}
+    if is_lan_ip(targetIp) then return {"localIp":targetIp, "publicIp":currentRouter.public_ip, "router":currentRouter}
+    targetRouter = get_router(targetIp)
+    if not targetRouter then return null
+    targetPortObject = targetRouter.ping_port(targetPort)
+    if targetPortObject then return {"localIp":targetPortObject.get_lan_ip, "publicIp":targetIp, "router":targetRouter}
+    return {"localIp":targetRouter.local_ip, "publicIp":targetIp, "router":targetRouter}
+end function
+libs.corruptLog = function(fileObject) //overwrite system.log by copy the smallest file to that dir
     if not fileObject then fileObject = current.folder
     while fileObject.parent
         fileObject = fileObject.parent
     end while
-    files = self.allFiles(fileObject)
+    files = self.allFiles(fileObject, 3)
     toCopy = null
     for file in files
-        if (not file.is_folder) and file.has_permission("r") then
-            if not toCopy then toCopy = file
-            if val(file.size) < val(toCopy.size) then toCopy = file
-        end if
+        if file.is_folder or (not file.has_permission("r")) then continue
+        if not toCopy then toCopy = file
+        if val(file.size) < val(toCopy.size) then toCopy = file
     end for
     if not toCopy then return print("No file to overwrite log! try using ""touch"".")
-    logFile = null
-    for file in files
-        if not file.path == "/var/system.log" then continue
-        logFile = file
-        break
-    end for
+    logFile = self.getFile("/var/system.log", fileObject)
     if not logFile then return print("log file not found!")
     tryDelete = logFile.delete
     if tryDelete == "" then print("Log file deleted.") else return print("Error: " + tryDelete)
@@ -412,6 +416,95 @@ shellCommands["build"]["run"] = function(args)
     end if
     return print(current.obj.build(args[0], args[1], allowedImport))
 end function
+shellCommands["jump"] = {"name":"jump", "description":"Remote payload execute. Advanced feature, run with no argument to get a special help msg.", "args":"[compile/upload] [remote_path] [params] [(opt) --custom_payload [local_path]]"}
+shellCommands["jump"]["run"] = function(args)
+    if not args then
+        print("You can sudo without using ""shell"" command, try ""jump compile /home/guest sudo root [password]"".")
+        print("You can local exploit without using ""shell"" command, try ""up [metaxploit_path] /home/guest/metaxploit.so"" and then ""jump compile /home/guest exploit [lib_path]"".")
+        print("Dont use --custom_payload flag or upload mode if you dont know what you are doing.")
+        return null
+    end if
+    if args[0] != "compile" and args[0] != "upload" then return print("mode can only be compile or upload.")
+    if args.len < 2 then return print("Missing remote path.")
+    custom_payload = args.indexOf("--custom_payload")
+    payload = "//code start
+scanLib = function(metaLib, metaxploit)
+    if not metaLib then return null
+    if not metaxploit then return null
+    ret = {}
+    ret.lib_name = metaLib.lib_name
+    ret.version = metaLib.version
+    ret.memorys = {}
+    memorys = metaxploit.scan(metaLib)
+    for memory in memorys
+        addresses = metaxploit.scan_address(metaLib, memory).split(""Unsafe check:"")
+        ret.memorys[memory] = []
+        for address in addresses
+            if address == addresses[0] then continue
+            value = address[address.indexOf(""<b>"")+3:address.indexOf(""</b>"")]
+            value = value.replace(char(10), """")
+            ret.memorys[memory] = ret.memorys[memory] + [value]
+        end for
+    end for
+    return ret
+end function
+interface = get_custom_object
+if params.len < 1 then exit(""[sudo/exploit] [user/lib_path] [pass/inject_arg]"")
+if params[0] == ""sudo"" then
+    if params.len < 3 then exit(""sudo mode need username and password."")
+    interface.shell = get_shell(params[1], params[2])
+    exit({""shell"":""Done."", ""null"":""invalid user/pass.""}[typeof(interface.shell)])
+else if params[0] == ""exploit"" then
+    if params.len < 2 then exit(""exploit mode need lib path."")
+    if params.len > 2 then injectArg = params[2] else injectArg = """"
+    metaxploit = include_lib(current_path + ""/metaxploit.so"")
+    if not metaxploit then metaxploit = include_lib(""/lib/metaxploit.so"")
+    if not metaxploit then exit(""metaxploit.so not found"")
+    metaLib = metaxploit.load(params[1])
+    if not metaLib then exit(""lib not found."")
+    exploits = scanLib(metaLib, metaxploit)
+    for e in exploits.memorys
+        for value in e.value
+            object = metaLib.overflow(e.key, value, injectArg)
+            if typeof(object) != ""shell"" and typeof(object) != ""computer"" and typeof(object) != ""file"" then continue
+            interface[__value_idx] = object
+        end for
+    end for
+    exit(""Done."")
+else
+    exit(""[sudo/exploit] [user/lib_path] [pass]"")
+end if
+//code end"
+    if custom_payload != null then
+        if custom_payload == args.len - 1 then return print("Provided flag ""--custom_payload"" without providing payload path.")
+        payloadFile = local.computer.File(args[custom_payload + 1])
+        if not payloadFile then return print("custom payload file not found.")
+        if payloadFile.is_folder then return print("custom payload can not be folder.")
+        if payloadFile.is_binary and args[0] == "compile" then return print("Got binary when mode ""compile"" was provided.")
+        if (not payloadFile.is_binary) and args[0] == "upload" then return print("Got text when mode ""upload"" was provided.")
+        if args[0] == "compile" then payload = payloadFile.get_content else payload = null
+        args = args[:custom_payload]
+    end if
+    if payload == null then
+        tryUpload = local.shell.scp(payloadFile.path, arg[1] + "/.", current.obj)
+        if not typeof(tryUpload) == "string" then print("Payload uploaded successfully.")
+        return print("Payload upload failed: " + tryUpload)
+    end if
+    if payload then
+        current.computer.touch(args[1], "..src")
+        payloadFile = current.computer.File(args[1] + "/..src")
+        if not payloadFile then return print("compile failed.")
+        payloadFile.set_content(payload)
+        current.obj.build(payloadFile.path, parent_path(payloadFile.path))
+    end if
+    current.obj.launch(args[1] + "/.", args[2:].join(" "))
+    interface = get_custom_object
+    for unsecureVariables in interface
+        if @unsecureVariables["key"] == "__isa" or @unsecureVariables["key"] == "classID" then continue
+        if host_computer(@unsecureVariables["value"]) or File(@unsecureVariables["value"], "/") or (size(@unsecureVariables["value"]) != null) then globals.objects.push({"object":unsecureVariables["value"], "user":libs.checkAccess(libs.toFile(unsecureVariables["value"])), "localIp":current.lanIp, "publicIp":current.publicIp, "router":current.router})
+    end for
+    return null
+end function
 
 commands = {}
 commands["re"] = {"name":"re", "description":"Remote attack.", "args":"[ip] [port] [(opt) injectArg]"}
@@ -431,34 +524,24 @@ commands["re"]["run"] = function(args)
     if not exploits then return print("Unable to scan for exploits.")
     results = []
     for e in exploits.memorys
+        print("<color=red>" + e.key + "</color>")
         for value in e.value
+            print(char(9) + "<color=white>" + value + "</color>")
             object = metaLib.overflow(e.key, value, injectArg)
             if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
-            result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
-            results = results + [result]
+            ips = libs.checkIp(object, targetIp, targetPort, current.router)
+            if not ips then continue
+            result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value, "localIp":ips.localIp, "publicIp":ips.publicIp, "router":ips.router}
+            results.push(result)
         end for
     end for
     toPrint = ""
-    for i in results.indexes
-        toPrint = toPrint + str(i + 1) + ". " + results[i].user + ":" + typeof(results[i].object) + " " + results[i].addr + " " + results[i].valn + char(10)
+    for result in results
+        globals.objects.push(result)
+        toPrint = toPrint + result.user + ":" + typeof(result.object) + " " + result.publicIp + " " + result.localIp + " " + result.addr + " " + result.valn + char(10)
     end for
     print(format_columns(toPrint))
-    select = user_input("Select> ").to_int
-    if not typeof(select) == "number" then return null
-    if select > results.len then return null
-    if select < 1 then return null
-    select = select - 1
-    globals.current.obj = results[select].object
-    if not is_lan_ip(targetIp) then globals.current.router = get_router(targetIp)
-    globals.current.folder = libs.toFile(results[select].object)
-    globals.current.user = results[select].user
-    if current.computer then
-        globals.current.lanIp = current.computer.local_ip
-    else if not is_lan_ip(targetIp) then
-        globals.current.lanIp = current.router.local_ip
-    else
-        globals.current.lanIp = targetIp
-    end if
+    print("Type ""objects"" command to use exploit.")
     return null
 end function
 commands["lo"] = {"name":"lo", "description":"Local attack.", "args":"[lib_path] [(opt) injectArg]"}
@@ -472,27 +555,55 @@ commands["lo"]["run"] = function(args)
     if not exploits then return print("Unable to scan for exploits.")
     results = []
     for e in exploits.memorys
+        print("<color=red>" + e.key + "</color>")
         for value in e.value
+            print(char(9) + "<color=white>" + value + "</color>")
             object = metaLib.overflow(e.key, value, injectArg)
             if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
-            result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value}
-            results = results + [result]
+            if typeof(object) == "shell" then localIp = object.host_computer.local_ip
+            if typeof(object) == "computer" then localIp = object.local_ip
+            if typeof(object) == "file" then localIp = current.lanIp
+            result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value, "localIp":localIp, "publicIp":current.publicIp, "router":current.router}
+            results.push(result)
         end for
     end for
     toPrint = ""
-    for i in results.indexes
-        toPrint = toPrint + str(i + 1) + ". " + results[i].user + ":" + typeof(results[i].object) + " " + results[i].addr + " " + results[i].valn + char(10)
+    for result in results
+        globals.objects.push(result)
+        toPrint = toPrint + result.user + ":" + typeof(result.object) + " " + result.publicIp + " " + result.localIp + " " + result.addr + " " + result.valn + char(10)
     end for
     print(format_columns(toPrint))
-    select = user_input("Select> ").to_int
-    if not typeof(select) == "number" then return null
-    if select > results.len then return null
-    if select < 1 then return null
-    select = select - 1
-    globals.current.obj = results[select].object
-    globals.current.folder = libs.toFile(results[select].object)
-    globals.current.user = results[select].user
+    print("Type ""objects"" command to use exploit.")
     return null
+end function
+commands["rshell"] = {"name":"rshell", "description":"Get rshell connections.", "args":""}
+commands["rshell"]["run"] = function(args)
+    if not current.isLocal then return print("metaxploit based commands only works when running from local.")
+    rshells = metaxploit.rshell_server
+    if typeof(rshells) == "string" then return print(rshells)
+    for object in rshells
+        objects.push({"object":object, "user":libs.checkAccess(libs.toFile(object)), "localIp":object.host_computer.local_ip, "publicIp":object.host_computer.public_ip, "router":get_router(object.host_computer.public_ip)})
+    end for
+    print(rshells.len + " active rshells added to list. Use with ""objects"" command.")
+    return null
+end function
+commands["objects"] = {"name":"objects", "description":"Change active object.", "args":""}
+commands["objects"]["run"] = function(args)
+    toPrint = ""
+    for i in objects.indexes
+        toPrint = toPrint + str(i + 1) + "." + objects[i].user + ":" + typeof(objects[i].object) + " " + objects[i].publicIp + " " + objects[i].localIp + char(10)
+    end for
+    print(format_columns(toPrint))
+    select = to_int(user_input("Chose a number: "))
+    if typeof(select) != "number" or select < 1 or select > objects.len then return print("input invalid.")
+    select = select - 1
+    globals.current.obj = objects[select].object
+    globals.current.router = objects[select].router
+    globals.current.lanIp = objects[select].localIp
+    globals.current.folder = libs.toFile(objects[select].object)
+    globals.current.user = objects[select].user
+    globals.current.isLocal = false
+    return print("Done.")
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
 commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway.
@@ -638,7 +749,7 @@ commands["ls"]["run"] = function(args)
     if not toFolder.is_folder then return print("No such directory.")
     subFiles = toFolder.get_folders + toFolder.get_files
     subFiles.sort
-    output = "<b>NAME TYPE +WRX FILE_SIZE PERMISSIONS OWNER GROUP</b>"
+    output = "NAME TYPE +WRX FILE_SIZE PERMISSIONS OWNER GROUP"
     for subFile in subFiles
         nameFile = subFile.name.replace(" ","_")
         permission = subFile.permissions
@@ -654,7 +765,8 @@ commands["ls"]["run"] = function(args)
         if subFile.has_permission("x") then WRX = WRX + "x" else WRX = WRX + "-"
         output = output + "\n" + subFile + ">" + nameFile + " [" + type + "] [" + WRX + "] [" + libs.fileSize(size) + "] [" + permission + "] [" + owner + "] [" + group + "]"
     end for
-    print(format_columns(output))
+    output = format_columns(output)
+    print(output)
     return print("\n")
 end function
 commands["help"] = {"name":"help", "description":"List all commands.", "args":""}
@@ -678,9 +790,46 @@ commands["help"]["run"] = function(args)
     end if
     return print(output)
 end function
-commands["valn"] = {"name":"valn", "description":"List file with vulnerable permission.", "args":""}
-commands["valn"]["run"] = function(args)
-    allFiles = libs.allFiles
+commands["secureserver"] = {"name":"secureserver", "description":"chmod -R ugo-rwx /, chown -R root /, chgrp -R root /.", "args":""}
+commands["secureserver"]["run"] = function(args)
+    if user_mail_address then return print("secureserver are disabled on home.")
+    fileObject = current.folder
+    while fileObject.parent
+        fileObject = fileObject.parent
+    end while
+    rootFolder = fileObject
+    if not rootFolder then return print("/ not found.")
+    rootFolder.set_group("root", true)
+    rootFolder.set_owner("root", true)
+    rootFolder.chmod("u-rwx", true)
+    rootFolder.chmod("g-rwx", true)
+    rootFolder.chmod("o-rwx", true)
+    return print("Tried to secure /.")
+end function
+commands["secure"] = {"name":"secure", "description":"chmod -R ugo-rwx /root, chown -R root /root, chgrp -R root /root.", "args":""}
+commands["secure"]["run"] = function(args)
+    if not current.isLocal then return print("secure are disabled on remote.")
+    fileObject = current.folder
+    while fileObject.parent
+        fileObject = fileObject.parent
+    end while
+    rootFolder = libs.getFile("/root", fileObject)
+    if not rootFolder then return print("/root not found.")
+    rootFolder.set_group("root", true)
+    rootFolder.set_owner("root", true)
+    rootFolder.chmod("u-rwx", true)
+    rootFolder.chmod("g-rwx", true)
+    rootFolder.chmod("o-rwx", true)
+    return print("Tried to secure /root.")
+end function
+commands["vuln"] = {"name":"vuln", "description":"List file with vulnerable permission.", "args":"[(opt) max_depth]"}
+commands["vuln"]["run"] = function(args)
+    if args and typeof(to_int(args[0])) == "number" then maxDepth = to_int(args[0]) else maxDepth = -1
+    rootFile = current.folder
+    while rootFile.parent
+        rootFile = rootFile.parent
+    end while
+    allFiles = libs.allFiles(rootFile, maxDepth)
     files = []
     for file in allFiles
         if file.has_permission("r") or file.has_permission("w") or file.has_permission("x") then
