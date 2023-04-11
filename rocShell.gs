@@ -43,6 +43,8 @@ current.publicIp = function
     return current.router.public_ip
 end function
 
+objects = []
+
 libs = {}
 libs.absolutePath = function(rPath, cPath) //current path + relative path = absolute path
     if rPath.len == 0 then return print("invalid path.")
