@@ -430,26 +430,6 @@ shellCommands["jump"]["run"] = function(args)
     if args.len < 2 then return print("Missing remote path.")
     custom_payload = args.indexOf("--custom_payload")
     payload = "//code start
-scanLib = function(metaLib, metaxploit)
-    if not metaLib then return null
-    if not metaxploit then return null
-    ret = {}
-    ret.lib_name = metaLib.lib_name
-    ret.version = metaLib.version
-    ret.memorys = {}
-    memorys = metaxploit.scan(metaLib)
-    for memory in memorys
-        addresses = metaxploit.scan_address(metaLib, memory).split(""Unsafe check:"")
-        ret.memorys[memory] = []
-        for address in addresses
-            if address == addresses[0] then continue
-            value = address[address.indexOf(""<b>"")+3:address.indexOf(""</b>"")]
-            value = value.replace(char(10), """")
-            ret.memorys[memory] = ret.memorys[memory] + [value]
-        end for
-    end for
-    return ret
-end function
 interface = get_custom_object
 if params.len < 1 then exit(""[sudo/exploit] [user/lib_path] [pass/inject_arg]"")
 if params[0] == ""sudo"" then
