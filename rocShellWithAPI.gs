@@ -468,14 +468,7 @@ else if params[0] == ""exploit"" then
     if not metaxploit then exit(""metaxploit.so not found"")
     metaLib = metaxploit.load(params[1])
     if not metaLib then exit(""lib not found."")
-    exploits = scanLib(metaLib, metaxploit)
-    for e in exploits.memorys
-        for value in e.value
-            object = metaLib.overflow(e.key, value, injectArg)
-            if typeof(object) != ""shell"" and typeof(object) != ""computer"" and typeof(object) != ""file"" then continue
-            interface[__value_idx] = object
-        end for
-    end for
+    interface.metaLib = metaLib
     exit(""Done."")
 else
     exit(""[sudo/exploit] [user/lib_path] [pass]"")
@@ -507,6 +500,20 @@ end if
     interface = get_custom_object
     for unsecureVariables in interface
         if @unsecureVariables["key"] == "__isa" or @unsecureVariables["key"] == "classID" then continue
+        if version(@unsecureVariables["value"]) then
+            metaLib = @unsecureVariables["value"]
+            exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
+            for e in exploits.memorys
+                print("<color=red>" + e.key + "</color>")
+                for value in e.value
+                    print(char(9) + "<color=white>" + value + "</color>")
+                    object = metaLib.overflow(e.key, value, injectArg)
+                    if (typeof(object) != "shell") and (typeof(object) != "computer") and (typeof(object) != "file") then continue
+                    result = {"object":object, "user":libs.checkAccess(libs.toFile(object)), "addr":e.key, "valn":value, "localIp":current.lanIp, "publicIp":current.publicIp, "router":current.router}
+                    results.push(result)
+                end for
+            end for
+        end if
         if host_computer(@unsecureVariables["value"]) or File(@unsecureVariables["value"], "/") or (size(@unsecureVariables["value"]) != null) then globals.objects.push({"object":unsecureVariables["value"], "user":libs.checkAccess(libs.toFile(unsecureVariables["value"])), "localIp":current.lanIp, "publicIp":current.publicIp, "router":current.router})
     end for
     return null
