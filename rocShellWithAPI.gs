@@ -4,7 +4,101 @@ clear_screen //if you dont like screen to be cleared remove this line
 
 {"ver":"1.0.7", "api":true} //release. today is huge.
 
-import_code("/root/cloudExploitAPI") //This is for cloud exploit base in multiplayer.
+getCloudExploitAPI = function(metaxploit)
+    recursiveCheck = function(anyObject, maxDepth = -1)
+        if maxDepth == 0 then return true
+        if @anyObject isa map or @anyObject isa list then
+            for key in indexes(@anyObject)
+                if not recursiveCheck(@key, maxDepth - 1) then return false
+            end for
+            for val in values(@anyObject)
+                if not recursiveCheck(@val, maxDepth - 1) then return false
+            end for
+        end if
+        if @anyObject isa funcRef then return false
+        return true
+    end function
+    if typeof(metaxploit) != "MetaxploitLib" then return print("metaxploit required for api to work.")
+    netSession = metaxploit.net_use(nslookup("www.ExploitDatabase.org"), 22) //connect to server with metaxploit on ssh service
+    if netSession then metaLib = netSession.dump_lib else metaLib = null
+    if metaLib then remoteShell = metaLib.overflow("0xF8E54A6", "becolo") else remoteShell = null //exploit needed to grab a guest shell to the server
+    if typeof(remoteShell) != "shell" then print("Server failed. API running in local mode.")
+    
+    clearInterface = function(interface)
+        for k in indexes(interface)
+            if @k == "classID" or @k == "__isa" then continue
+            remove(interface, @k)
+        end for
+        if not recursiveCheck(@interface) then exit("<color=red>WARNING, API MAY HAVE BEEN POISONED, ABORTING.</color>")
+        return null
+    end function
+
+    api = {}
+    api.classID = "api"
+    api.connection = remoteShell
+    api.metaxploit = metaxploit
+    api.interface = get_custom_object
+
+    //all api method start
+    api.testConnection = function(self) //demo method.
+        clearInterface(self.interface)
+        if typeof(self.connection) != "shell" then return false
+        self.interface.ret = null
+        self.interface.args = ["testConnection"]
+        self.connection.launch("/root/interfaces/exploitAPI")
+        if not hasIndex(self.interface, "ret") then return not (not clearInterface(self.interface)) //not (not) is for casting null to false, false to false, empty set to false, everything else to true.
+        if @self.interface.ret isa funcRef or @self.interface.ret isa map then return not (not clearInterface(self.interface))
+        ret = not (not @self.interface.ret)
+        clearInterface(self.interface)
+        return ret
+    end function
+    api.scanMetaLib = function(self, metaLib)
+        clearInterface(self.interface)
+        self.interface.ret = null
+        self.interface.args = ["scanMetaLib", metaLib]
+        if typeof(self.connection) == "shell" then self.connection.launch("/root/interfaces/exploitAPI")
+        print("IF YOU SEE ANY WEIRD OUTPUT ABOVE (ESPECIALLY OVERFLOW PROMPT), OR IF YOUR TERMINAL WAS CLEARED, IT MEANS THE SERVER WAS HACKED AND YOU NEED TO STOP USING THIS API RIGHT NOW, AND CONTACT OWNER IMMEDIATELY.")
+        if hasIndex(self.interface, "ret") and @self.interface.ret != null and recursiveCheck(@self.interface.ret) then
+            ret = @self.interface.ret
+            clearInterface(self.interface)
+            return ret
+        end if
+        clearInterface(self.interface)
+        print("Server failed. Using local scan.")
+        ret = {}
+        ret.lib_name = lib_name(@metaLib)
+        ret.version = version(@metaLib)
+        ret.memorys = {}
+        memorys = self.metaxploit.scan(@metaLib)
+        for memory in memorys
+            addresses = split(self.metaxploit.scan_address(@metaLib, memory), "Unsafe check:")
+            ret.memorys[memory] = []
+            for address in addresses
+                if address == addresses[0] then continue
+                value = address[indexOf(address, "<b>") + 3:indexOf(address, "</b>")].replace("\n", "")
+                ret.memorys[memory] = ret.memorys[memory] + [value]
+            end for
+        end for
+        return ret
+    end function
+    api.queryExploit = function(self, libName, libVersion)
+        clearInterface(self.interface)
+        if typeof(self.connection) != "shell" then return null
+        self.interface.ret = null
+        self.interface.args = ["queryExploit", libName, libVersion]
+        self.connection.launch("/root/interfaces/exploitAPI")
+        if not hasIndex(self.interface, "ret") then return clearInterface(self.interface)
+        if not recursiveCheck(@self.interface.ret) then return clearInterface(self.interface)
+        ret = @self.interface.ret
+        clearInterface(self.interface)
+        return ret
+    end function
+    //all api method end
+
+    if not api.testConnection then print("unable to reach server. API is in local mode.")
+
+    return api
+end function
 
 local = {}
 local.shell = get_shell
@@ -30,6 +124,7 @@ if not crypto then print("missing lib crypto.so in lib or current path")
 metaxploit = include_lib(current_path + "/metaxploit.so")
 if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then print("missing lib metaxploit.so in lib or current path")
+api = getCloudExploitAPI(metaxploit)
 
 current = {}
 current.obj = local.shell
@@ -516,10 +611,10 @@ commands["re"]["run"] = function(args)
     if not metaLib then return print("Unable to dump lib.")
     forceLocal = false
     while true
-        exploits = queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
+        exploits = api.queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
         //exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
         if (not exploits) or forceLocal then
-            exploits = remoteScan(targetIp, targetPort) //Scan for exploit and send to cloud database thru API
+            exploits = api.scanMetaLib(metaLib) //Scan for exploit and send to cloud database thru API
             forceLocal = true
         end if
         if not exploits then return print("Unable to scan for exploits.")
@@ -564,10 +659,10 @@ commands["lo"]["run"] = function(args)
     if not metaLib then return print("Unable to load lib.")
     forceLocal = false
     while true
-        exploits = queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
+        exploits = api.queryExploit(metaLib.lib_name, metaLib.version) //Request exploit from cloud database API
         //exploits = libs.scanLib(metaLib, metaxploit) //This is the full local version.
         if (not exploits) or forceLocal then
-            exploits = localScan(targetPath) //Scan for exploit and send to cloud database thru API
+            exploits = api.scanMetaLib(metaLib) //Scan for exploit and send to cloud database thru API
             forceLocal = true
         end if
         if not exploits then return print("Unable to scan for exploits.")
