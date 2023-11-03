@@ -138,6 +138,7 @@ if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then print("missing lib metaxploit.so in lib or current path")
 api = getCloudExploitAPI(metaxploit)
 if api then hashMap = api.getHashes else hashMap = null //hashMap is not a HashMap, it is a map of hashes :)
+if not hashMap then hashMap = {}
 
 current = {}
 current.obj = local.shell
