@@ -2,7 +2,7 @@
 
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.7", "api":true} //release. today is huge.
+{"ver":"1.0.8", "api":true} //release. today is huge.
 
 getCloudExploitAPI = function(metaxploit)
     recursiveCheck = function(anyObject, maxDepth = -1)
@@ -45,7 +45,7 @@ getCloudExploitAPI = function(metaxploit)
         if typeof(self.connection) != "shell" then return false
         self.interface.ret = null
         self.interface.args = ["testConnection"]
-        self.connection.launch("/root/interfaces/exploitAPI")
+        self.connection.launch("/interfaces/exploitAPI")
         if not hasIndex(self.interface, "ret") then return not (not clearInterface(self.interface)) //not (not) is for casting null to false, false to false, empty set to false, everything else to true.
         if @self.interface.ret isa funcRef or @self.interface.ret isa map then return not (not clearInterface(self.interface))
         ret = not (not @self.interface.ret)
@@ -56,8 +56,8 @@ getCloudExploitAPI = function(metaxploit)
         clearInterface(self.interface)
         self.interface.ret = null
         self.interface.args = ["scanMetaLib", metaLib]
-        if typeof(self.connection) == "shell" then self.connection.launch("/root/interfaces/exploitAPI")
-        print("IF YOU SEE ANY WEIRD OUTPUT ABOVE (ESPECIALLY OVERFLOW PROMPT), OR IF YOUR TERMINAL WAS CLEARED, IT MEANS THE SERVER WAS HACKED AND YOU NEED TO STOP USING THIS API RIGHT NOW, AND CONTACT OWNER IMMEDIATELY.")
+        if typeof(self.connection) == "shell" then self.connection.launch("/interfaces/exploitAPI")
+        print("IF YOU SEE ANY WEIRD OUTPUT ABOVE (ESPECIALLY OVERFLOW PROMPT), OR IF YOUR TERMINAL WAS CLEARED (OUTPUT SHOULD ONLY BE A PROGRESS BAR, NOTHING MORE NOTHING LESS), IT MEANS THE SERVER WAS HACKED AND YOU NEED TO STOP USING THIS API RIGHT NOW, AND CONTACT DISCORD:rocketorbit IMMEDIATELY.")
         if hasIndex(self.interface, "ret") and @self.interface.ret != null and recursiveCheck(@self.interface.ret) then
             ret = @self.interface.ret
             clearInterface(self.interface)
@@ -86,7 +86,19 @@ getCloudExploitAPI = function(metaxploit)
         if typeof(self.connection) != "shell" then return null
         self.interface.ret = null
         self.interface.args = ["queryExploit", libName, libVersion]
-        self.connection.launch("/root/interfaces/exploitAPI")
+        self.connection.launch("/interfaces/exploitAPI")
+        if not hasIndex(self.interface, "ret") then return clearInterface(self.interface)
+        if not recursiveCheck(@self.interface.ret) then return clearInterface(self.interface)
+        ret = @self.interface.ret
+        clearInterface(self.interface)
+        return ret
+    end function
+    api.getHashes = function(self)
+        clearInterface(self.interface)
+        if typeof(self.connection) != "shell" then return null
+        self.interface.ret = null
+        self.interface.args = ["getHashes"]
+        self.connection.launch("/interfaces/exploitAPI")
         if not hasIndex(self.interface, "ret") then return clearInterface(self.interface)
         if not recursiveCheck(@self.interface.ret) then return clearInterface(self.interface)
         ret = @self.interface.ret
@@ -125,6 +137,7 @@ metaxploit = include_lib(current_path + "/metaxploit.so")
 if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then print("missing lib metaxploit.so in lib or current path")
 api = getCloudExploitAPI(metaxploit)
+if api then hashMap = api.getHashes else hashMap = null //hashMap is not a HashMap, it is a map of hashes :)
 
 current = {}
 current.obj = local.shell
@@ -914,7 +927,7 @@ commands["help"]["run"] = function(args)
 end function
 commands["secureserver"] = {"name":"secureserver", "description":"chmod -R ugo-rwx /, chown -R root /, chgrp -R root /.", "args":""}
 commands["secureserver"]["run"] = function(args)
-    if user_mail_address then return print("secureserver are disabled on home.")
+    if user_mail_address then return print("secureserver is disabled on home.")
     fileObject = current.folder
     while fileObject.parent
         fileObject = fileObject.parent
@@ -930,7 +943,7 @@ commands["secureserver"]["run"] = function(args)
 end function
 commands["secure"] = {"name":"secure", "description":"chmod -R ugo-rwx /root, chown -R root /root, chgrp -R root /root.", "args":""}
 commands["secure"]["run"] = function(args)
-    if not current.isLocal then return print("secure are disabled on remote.")
+    if not current.isLocal then return print("secure is disabled on remote.")
     fileObject = current.folder
     while fileObject.parent
         fileObject = fileObject.parent
@@ -1199,7 +1212,7 @@ commands["rm"]["run"] = function(args)
 end function
 commands["hash"] = {"name":"hash", "description":"Reverse hash. Split multiple lines with commas or line breaks.", "args":"[hash]"}
 commands["hash"]["run"] = function(args)
-    if not crypto then return print("Error: crypto.so not loaded!")
+    if not crypto then print("Error: crypto.so not loaded! You can still try to use it if you have a hash map from API tho.")
     if args.len != 1 then return print("Invalid arguments!")
     hashes = []
     passes = args[0]
@@ -1217,7 +1230,9 @@ commands["hash"]["run"] = function(args)
         hsh = hsh.split(":")
         if hsh.len > 0 then arg = hsh[0]
         if hsh.len > 1 then arg = hsh[1]
-        ret = crypto.decipher(arg)
+        ret = ""
+        if hashMap.hasIndex(arg) then ret = hashMap[arg]
+        if (not ret) and crypto then ret = crypto.decipher(arg)
         if hsh.len > 1 then ret = hsh[0] + ":" + ret
         print(ret)
     end for
