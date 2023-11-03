@@ -9,5 +9,4 @@ It has been completely rewrote, if you find any bug, please report to issues.
 
 credit goes to [Nameless9000](https://github.com/Nameless9000) and [Darkvalnar](https://github.com/Darkvalnar)
 
-update 20231103:
-    rocShell without api will no longer be updated.
+update 20231103: rocShell without api will no longer be updated. rocShell.gs now contains API. Remove it yourself if you dont want to use it. If you use it in singleplayer, API will be disabled automatically.
