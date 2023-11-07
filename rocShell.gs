@@ -2,7 +2,7 @@
 
 clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.8", "api":true} //release. today is huge.
+{"ver":"1.0.9", "api":true} //release. today is huge.
 
 getCloudExploitAPI = function(metaxploit)
     recursiveCheck = function(anyObject, maxDepth = -1)
@@ -467,6 +467,21 @@ shellCommands["ssh"]["run"] = function(args)
     if not is_lan_ip(sshIp) then globals.current.router = get_router(sshIp)
     globals.current.lanIp = remoteShell.host_computer.local_ip
     return print("Connected.")
+end function
+shellCommands["brutessh"] = {"name":"brutessh", "description":"Bruteforce a ssh with a NPC password list.", "args":"[user] [ip] [(opt) port]"}
+shellCommands["brutessh"]["run"] = function(args)
+    if args.len < 2 then return print("brutessh [user] [ip] [(opt) port]")
+    if args.len > 2 then port = to_int(args[2]) else port = 22
+    if typeof(port) != "number" then return print("port invalid.")
+    user = args[0]
+    ip = args[1]
+    for pas in hashMap.values
+        result = current.obj.connect_service(ip, port, user, pas)
+        if typeof(result) != "shell" then continue
+        globals.objects.push({"object":result, "user":libs.checkAccess(libs.toFile(result)), "localIp":current.lanIp, "publicIp":current.publicIp, "router":current.router})
+        return print("Password found! " + usr + ":" + pas)
+    end for
+    return print("Failed.")
 end function
 shellCommands["up"] = {"name":"up", "description":"Upload a file. Only take absolute path.", "args":"[local_file_path] [remote_path]"}
 shellCommands["up"]["run"] = function(args)
@@ -1238,6 +1253,17 @@ commands["hash"]["run"] = function(args)
         print(ret)
     end for
     return print("All hash done.")
+end function
+commands["brute"] = {"name":"brute", "description":"Bruteforce with a NPC password list. Only works locally.", "args":"[(opt) user]"}
+commands["brute"]["run"] = function(args)
+    if args then usr = args[0] else usr = "root"
+    for pas in hashMap.values
+        result = get_shell(usr, pas)
+        if typeof(result) != "shell" then continue
+        globals.objects.push({"object":result, "user":libs.checkAccess(libs.toFile(result)), "localIp":current.lanIp, "publicIp":current.publicIp, "router":current.router})
+        return print("Password found! " + usr + ":" + pas)
+    end for
+    return print("Failed.")
 end function
 commands["clog"] = {"name":"clog", "description":"Clear log.", "args":""}
 commands["clog"]["run"] = function(args)
