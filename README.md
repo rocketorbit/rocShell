@@ -1,5 +1,5 @@
 # rocShell
-A tool for the game [GreyHack](https://store.steampowered.com/app/605230/Grey_Hack/).
+A tool for the game [Grey Hack](https://store.steampowered.com/app/605230/Grey_Hack/).
 
 Has a built-in text editor.
 
