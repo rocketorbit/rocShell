@@ -764,11 +764,18 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
     if not is_valid_ip(targetIp) then return print("Invalid ip.")
     if is_lan_ip(targetIp) then router = current.router else router = get_router(targetIp)
     toPrint = "<b>" + router.essid_name + " (" + router.bssid_name + ")</b>\nPublic IP: <b>" + router.public_ip + "</b>  Private IP: <b>" + router.local_ip + "\n\nkernel_router.so v<b>" + router.kernel_version + "</b>\n\nWhois info:\n" + whois(router.public_ip).replace(char(10), "\n</b>").replace(": ", ": <b>") + "</b>\n\nFirewall rules:\n" + format_columns((["ACTION PORT SOURCE_IP DESTINATION_IP"] + router.firewall_rules).join("\n")) + "\n\n" //nslookup, whois, scanrouter part.
+    nmapInfo = "Exposed ports on router " + router.public_ip
+    for port in router.used_ports
+        if is_lan_ip(targetIp) or (not port.is_closed) then accessible = "ACCESSIBLE" else accessible = "---       "
+        portInfo = router.port_info(port).split(" ")
+        portNumber = port.port_number + ""
+        nmapInfo = nmapInfo + "\n" + char(9) + accessible + " " + portNumber + (" " * (6 - portNumber.len)) + portInfo[0] + (" " * (13 - portInfo[0].len)) + portInfo[1] + (" " * (8 - portInfo[1].len)) + port.get_lan_ip
+    end for
     forwardedPorts = router.used_ports
     for i in forwardedPorts.indexes
         forwardedPorts[i] = forwardedPorts[i].get_lan_ip + router.port_info(forwardedPorts[i])
     end for
-    nmapInfo = "Scaning all machine(s) on " + targetIp
+    nmapInfo = nmapInfo + "\n\nScaning all machines..."
     if is_lan_ip(targetIp) then lanIps = [targetIp] else lanIps = router.devices_lan_ip.sort
     if lanIps.indexOf(router.local_ip) then
         lanIps.remove(lanIps.indexOf(router.local_ip))
@@ -777,6 +784,10 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
     for lanIp in lanIps
         nmapInfo = nmapInfo + "\nMachine at <b>" + lanIp + "</b>"
         ports = router.device_ports(lanIp)
+        if not ports isa list then
+            nmapInfo = nmapInfo + "\n" + char(9) + "<i>IP UNREACHABLE</i>"
+            continue
+        end if
         portsInfo = ""
         for port in ports
             if forwardedPorts.indexOf(port.get_lan_ip + router.port_info(port)) != null then exposed = "EXPOSED" else exposed = "---    "
