@@ -1,8 +1,8 @@
 //if params[0] != "password_here" then exit //if you need password protection use this line.
 
-clear_screen //if you dont like screen to be cleared remove this line
+//clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.0.9", "api":true} //release. today is huge.
+{"ver":"1.1.0", "api":true} //release. today is huge.
 
 getCloudExploitAPI = function(metaxploit)
     recursiveCheck = function(anyObject, maxDepth = -1)
@@ -757,109 +757,38 @@ commands["objects"]["run"] = function(args)
     return print("Done.")
 end function
 commands["nmap"] = {"name":"nmap", "description":"Scan a ip or a domain.", "args":"[ip/domain]"}
-commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway.
+commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome nmap. I am too lazy to write a new one. It is MIT licensed anyway. //update 20240302: i did write a new one.
     if args.len < 1 then return print("Invalid ip.")
     targetIp = args[0]
     if not is_valid_ip(targetIp) then targetIp = nslookup(targetIp)
     if not is_valid_ip(targetIp) then return print("Invalid ip.")
-    if is_lan_ip(targetIp) then //this is a huge if else statement i know sorry too lazy to change
-        router = current.router
-        lanPorts = router.device_ports(targetIp)
-        publicPorts = router.used_ports
-        print("\nLocal Machine at " + targetIp)
-        if lanPorts.len == 0 then print("| | --> No local ports detected.")
-        for lanPort in lanPorts
-            s = "| |"
-            if lanPort.is_closed then 
-                s = s + "-X-> "
-            else
-                s = s + "---> "
-            end if
-            s = s + ":" + lanPort.port_number + " "
-            s = s + router.port_info(lanPort)
-            for publicPort in publicPorts
-                iPort = router.ping_port(publicPort.port_number)
-                if iPort.port_number == lanPort.port_number and iPort.get_lan_ip == targetIp then
-                    s = s + "-->" + " External Address: " + router.public_ip + ":" + publicPort.port_number
-                end if
-            end for
-            print(s)
-        end for
-        if not router.kernel_version then
-            print("Warning: kernel_router.so not found")
-        else
-            print("kernel_router.so version: " + router.kernel_version) //print router version
-        end if
-        print("|\n|---> " + router.essid_name + " (" + router.bssid_name + ")")
-        print("      Public IP: " + router.public_ip + "  Private IP: " + router.local_ip)
-        print(whois(router.public_ip))
-        firewall_rules = router.firewall_rules
-        if typeof(firewall_rules) == "string" then return print(firewall_rules)
-        print("\nScanning firewall rules...\n")
-        if firewall_rules.len == 0 then return print("No rules found.")
-        info = "ACTION PORT SOURCE_IP DESTINATION_IP"
-        for rules in firewall_rules
-            info = info + "\n" + rules
-        end for
-        print(format_columns(info) + "\n")
-    else
-        router = get_router(targetIp)
-        publicPorts = router.used_ports
-        print("\n" + router.essid_name + " (" + router.bssid_name + ")")
-        print("Public IP: " + router.public_ip + "  Private IP: " + router.local_ip)
-        print(whois(router.public_ip))
-        portFwds = []
-        blankPorts = []
-        for publicPort in publicPorts
-            lanPort = router.ping_port(publicPort.port_number)
-            if lanPort then portFwds.push({"external":publicPort, "internal":lanPort})
-            arrows = "--->"
-            arrows2 = " ---> "
-            if publicPort.is_closed then arrows = "-X->"
-            if not router.ping_port(publicPort.port_number) then
-                arrows2 = " ---> ? "
-            else if router.ping_port(publicPort.port_number) and router.ping_port(publicPort.port_number).is_closed then
-                arrows2 = " -X-> "
-            end if
-            print(" |  |"+arrows+" :" + publicPort.port_number + " " + router.port_info(publicPort).split(" ")[0] + " " + router.port_info(publicPort).split(" ")[1] +arrows2 + publicPort.get_lan_ip)
-        end for
-        if not router.devices_lan_ip then
-            print(" |-> No local machines detected.")
-        else
-            for lanMachine in router.devices_lan_ip
-                print(" |-> Machine at " + lanMachine + "")
-                vbar = "|"
-                if router.devices_lan_ip.indexOf(lanMachine) == (router.devices_lan_ip.len - 1) then vbar = " "
-                if not router.device_ports(lanMachine) then
-                    print(" " + vbar + "   |--> No ports detected.")
-                else
-                    for port in router.device_ports(lanMachine)
-                        arrows = "-->"
-                        if port.is_closed then arrows = "-X>"
-                        toPrint = " " + vbar + "   |" + arrows + " :" + port.port_number + " " + router.port_info(port).split(" ")[0] + " " + router.port_info(port).split(" ")[1]
-                        for portFwd in portFwds
-                            if port.get_lan_ip == portFwd.internal.get_lan_ip and port.port_number == portFwd.internal.port_number then toPrint = toPrint + " ---> external port " + portFwd.external.port_number
-                        end for
-                        print(toPrint)
-                    end for
-                end if
-            end for
-        end if
-        if not router.kernel_version then
-            print("Warning: kernel_router.so not found")
-        else
-            print("kernel_router.so version: " + router.kernel_version) //print router version
-        end if
-        firewall_rules = router.firewall_rules
-        if typeof(firewall_rules) == "string" then return print(firewall_rules)
-        print("\nScanning firewall rules...\n")
-        if firewall_rules.len == 0 then return print("No rules found.")
-        info = "ACTION PORT SOURCE_IP DESTINATION_IP"
-        for rules in firewall_rules
-            info = info + "\n" + rules
-        end for
-        print(format_columns(info) + "\n")
+    if is_lan_ip(targetIp) then router = current.router else router = get_router(targetIp)
+    toPrint = "<b>" + router.essid_name + " (" + router.bssid_name + ")</b>\nPublic IP: <b>" + router.public_ip + "</b>  Private IP: <b>" + router.local_ip + "\n\nkernel_router.so v<b>" + router.kernel_version + "</b>\n\nWhois info:\n" + whois(router.public_ip).replace(char(10), "\n</b>").replace(": ", ": <b>") + "</b>\n\nFirewall rules:\n" + format_columns((["ACTION PORT SOURCE_IP DESTINATION_IP"] + router.firewall_rules).join("\n")) + "\n\n" //nslookup, whois, scanrouter part.
+    forwardedPorts = router.used_ports
+    for i in forwardedPorts.indexes
+        forwardedPorts[i] = forwardedPorts[i].get_lan_ip + router.port_info(forwardedPorts[i])
+    end for
+    nmapInfo = "Scaning all machine(s) on " + targetIp
+    if is_lan_ip(targetIp) then lanIps = [targetIp] else lanIps = router.devices_lan_ip.sort
+    if lanIps.indexOf(router.local_ip) then
+        lanIps.remove(lanIps.indexOf(router.local_ip))
+        lanIps = [router.local_ip] + lanIps
     end if
+    for lanIp in lanIps
+        nmapInfo = nmapInfo + "\nMachine at <b>" + lanIp + "</b>"
+        ports = router.device_ports(lanIp)
+        portsInfo = ""
+        for port in ports
+            if forwardedPorts.indexOf(port.get_lan_ip + router.port_info(port)) != null then exposed = "EXPOSED" else exposed = "---    "
+            if is_lan_ip(targetIp) or ((not port.is_closed) and exposed == "EXPOSED") then accessible = "ACCESSIBLE" else accessible = "---       "
+            portInfo = router.port_info(port).split(" ")
+            portNumber = port.port_number + ""
+            portsInfo = portsInfo + "\n" + char(9) + exposed + " " + accessible + " " + portNumber + (" " * (6 - portNumber.len)) + portInfo[0] + (" " * (13 - portInfo[0].len)) + portInfo[1] + (" " * (8 - portInfo[1].len)) + port.get_lan_ip
+        end for
+        if ports then nmapInfo = nmapInfo + portsInfo else nmapInfo = nmapInfo + "\n" + char(9) + "<i>No ports detected.</i>"
+    end for
+    toPrint = toPrint + nmapInfo
+    print(toPrint)
 end function
 commands["cd"] = {"name":"cd", "description":"Moves to a different directory.", "args":"[(opt) path]"}
 commands["cd"]["run"] = function(args)
@@ -932,12 +861,12 @@ commands["help"]["run"] = function(args)
             commandData = command.value
             output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
         end for
-        if typeof(current.obj) == "shell" then
-            for command in shellCommands
-                commandData = command.value
-                output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
-            end for
-        end if
+    end if
+    if typeof(current.obj) == "shell" then
+        for command in shellCommands
+            commandData = command.value
+            output = output + char(9) + commandData.name + " " + commandData.args.trim + " -> " + commandData.description + "\n"
+        end for
     end if
     return print(output)
 end function
@@ -1284,6 +1213,10 @@ end function
 commands["clear"] = {"name":"clear", "description":"Clear screen.", "args":""}
 commands["clear"]["run"] = function(args)
     return clear_screen
+end function
+commands["exit"] = {"name":"exit", "description":"exit.", "args":""}
+commands["exit"]["run"] = function(args)
+    return exit("exiting...")
 end function
 
 execute = function(input)
