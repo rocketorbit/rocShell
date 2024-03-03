@@ -4,7 +4,7 @@
 
 {"ver":"1.1.0", "api":true} //release. today is huge.
 
-getCloudExploitAPI = function(metaxploit)
+getCloudExploitAPI = function(metaxploit) //cloud exploit database api.
     recursiveCheck = function(anyObject, maxDepth = -1)
         if maxDepth == 0 then return true
         if @anyObject isa map or @anyObject isa list then
@@ -111,6 +111,78 @@ getCloudExploitAPI = function(metaxploit)
 
     return api
 end function
+getRshellAPI = function(metaxploit) //open rshell api.
+    recursiveCheck = function(anyObject, maxDepth = -1)
+        if maxDepth == 0 then return true
+        if @anyObject isa map or @anyObject isa list then
+            for key in indexes(@anyObject)
+                if not recursiveCheck(@key, maxDepth - 1) then return false
+            end for
+            for val in values(@anyObject)
+                if not recursiveCheck(@val, maxDepth - 1) then return false
+            end for
+        end if
+        if @anyObject isa funcRef then return false
+        return true
+    end function
+    if typeof(metaxploit) != "MetaxploitLib" then return print("metaxploit required for api to work.")
+    netSession = metaxploit.net_use(nslookup("www.OpenRshell.org"), 22) //connect to server with metaxploit on ssh service
+    if netSession then metaLib = netSession.dump_lib else metaLib = null
+    if metaLib then remoteShell = metaLib.overflow("0xF8E54A6", "becolo") else remoteShell = null //exploit needed to grab a guest shell to the server
+    if typeof(remoteShell) != "shell" then print("Server failed. API running in local mode.")
+    
+    clearInterface = function(interface)
+        for k in indexes(interface)
+            if @k == "classID" or @k == "__isa" then continue
+            remove(interface, @k)
+        end for
+        if not recursiveCheck(@interface) then exit("<color=red>WARNING, API MAY HAVE BEEN POISONED, ABORTING.</color>")
+        return null
+    end function
+
+    api = {}
+    api.classID = "api"
+    api.connection = remoteShell
+    api.metaxploit = metaxploit
+    api.interface = get_custom_object
+
+    //all api method start
+    api.testConnection = function(self) //demo method.
+        clearInterface(self.interface)
+        if typeof(self.connection) != "shell" then return false
+        self.interface.ret = null
+        self.interface.args = ["testConnection"]
+        self.connection.launch("/interfaces/rshellAPI")
+        if not hasIndex(self.interface, "ret") then return not (not clearInterface(self.interface)) //not (not) is for casting null to false, false to false, empty set to false, everything else to true.
+        if @self.interface.ret isa funcRef or @self.interface.ret isa map then return not (not clearInterface(self.interface))
+        ret = not (not @self.interface.ret)
+        clearInterface(self.interface)
+        return ret
+    end function
+    api.getRshells = function(self, publicIp)
+        clearInterface(self.interface)
+        if typeof(self.connection) != "shell" then return null
+        self.interface.ret = null
+        self.interface.args = ["getRshells", publicIp]
+        self.connection.launch("/interfaces/rshellAPI")
+        if not hasIndex(self.interface, "ret") then return clearInterface(self.interface)
+        if @self.interface.ret isa map then return clearInterface(self.interface)
+        if not recursiveCheck(@self.interface.ret, 3) then return clearInterface(self.interface) //this is for shell object back passing only. do not access its method, when using the shell object, use host_computer(@shell) instead of shell.host_computer!
+        ret = @self.interface.ret
+        if ret isa list then
+            for shell in ret
+                if not host_computer(@shell) then return clearInterface(self.interface)
+            end for
+        end if
+        clearInterface(self.interface)
+        return ret
+    end function
+    //all api method end
+
+    if not api.testConnection then print("unable to reach server. API is in local mode.")
+
+    return api
+end function
 
 local = {}
 local.shell = get_shell
@@ -136,9 +208,12 @@ if not crypto then print("missing lib crypto.so in lib or current path")
 metaxploit = include_lib(current_path + "/metaxploit.so")
 if not metaxploit then metaxploit = include_lib("/lib/metaxploit.so")
 if not metaxploit then print("missing lib metaxploit.so in lib or current path")
+
 api = getCloudExploitAPI(metaxploit)
 if api then hashMap = api.getHashes else hashMap = null //hashMap is not a HashMap, it is a map of hashes :)
 if not hashMap then hashMap = {}
+
+rshellAPI = getRshellAPI(metaxploit)
 
 current = {}
 current.obj = local.shell
@@ -727,11 +802,16 @@ commands["lo"]["run"] = function(args)
     end while
     return null
 end function
-commands["rshell"] = {"name":"rshell", "description":"Get rshell connections.", "args":""}
+commands["rshell"] = {"name":"rshell", "description":"Get rshell connections. Specify a public IP to get from open rshell api.", "args":"[(opt) public_ip]"}
 commands["rshell"]["run"] = function(args)
     if not current.isLocal then return print("metaxploit based commands only works when running from local.")
-    rshells = metaxploit.rshell_server
-    if typeof(rshells) == "string" then return print(rshells)
+    if args and rshellAPI and args[0] then
+        rshells = rshellAPI.getRshells(args[0])
+        print("Using open rshell api with IP " + args[0])
+    else
+        rshells = metaxploit.rshell_server
+        if typeof(rshells) == "string" then return print(rshells)
+    end if
     for object in rshells
         objects.push({"object":object, "user":libs.checkAccess(libs.toFile(object)), "localIp":object.host_computer.local_ip, "publicIp":object.host_computer.public_ip, "router":get_router(object.host_computer.public_ip)})
     end for
