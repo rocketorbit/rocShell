@@ -2,7 +2,7 @@
 
 //clear_screen //if you dont like screen to be cleared remove this line
 
-{"ver":"1.1.0", "api":true} //release. today is huge.
+{"ver":"1.1.1", "api":true} //release. today is huge.
 
 getCloudExploitAPI = function(metaxploit) //cloud exploit database api.
     recursiveCheck = function(anyObject, maxDepth = -1)
@@ -509,6 +509,66 @@ computerCommands["netinfo"]["run"] = function(args)
     end if
     return null
 end function
+computerCommands["useradd"] = {"name":"useradd", "description":"Create a user.", "args":"[new_user]"}
+computerCommands["useradd"]["run"] = function(args)
+    if args.len < 1 then return print("Usage: useradd [new_user]")
+    pass = user_input("Setting password for user " + args[0] + ".\nNew password: ", true)
+    computer = current.computer
+    output = computer.create_user(args[0], pass)
+    if output == true then return print("User created OK")
+    if output then return print(output)
+    return print("Error: the user could not be created.")
+end function
+computerCommands["userdel"] = {"name":"userdel", "description":"Delete a user.", "args":"[(opt) -r][user]"}
+computerCommands["userdel"]["run"] = function(args)
+    if args.len < 1 then return print("Usage: userdel [(opt) -r][user]")
+    del = 0
+    if args.len >= 2 and args[0] == "-r" then
+        del = 1
+        args.pull
+    end if
+    computer = current.computer
+    output = computer.delete_user(args[0], del)
+    if output == true then return print("user " + args[0] + " deleted.")
+    if output then return print(output)
+    return print("Error: user not deleted.")
+end function
+computerCommands["passwd"] = {"name":"passwd", "description":"Change password for a user.", "args":"[user]"}
+computerCommands["passwd"]["run"] = function(args)
+    if args.len < 1 then return print("Usage: passwd [user]")
+    computer = current.computer
+    pass = user_input("Changing password for user " + args[0] +".\nNew password:", true)
+    output = computer.change_password(args[0], pass)
+    if output == true then return print("password modified OK")
+    if output then return print(output)
+    return print("Error: password not modified")
+end function
+computerCommands["groups"] = {"name":"groups", "description":"Get groups for a user.", "args":"[user]"}
+computerCommands["groups"]["run"] = function(args)
+    if args.len < 1 then return print("Usage: groups [user]")
+    computer = current.computer
+    output = computer.groups(args[0])
+    if not output then return print("Usage: groups [user]")
+    return print(output)
+end function
+computerCommands["groupadd"] = {"name":"groupadd", "description":"Add a group to a user.", "args":"[user] [group]"}
+computerCommands["groupadd"]["run"] = function(args)
+    if args.len < 2 then return print("Usage: groupadd [user] [group]")
+    computer = current.computer
+    output = computer.create_group(args[0], args[1])
+    if output == true then return print("Group " + args[1] + " added to user " + args[0])
+    if output then return print(output)
+    return print("Error: the group could not be created.")
+end function
+computerCommands["groupdel"] = {"name":"groupdel", "description":"Delete a group from a user.", "args":"[user] [group]"}
+computerCommands["groupdel"]["run"] = function(args)
+    if args.len < 2 then return print("Usage: groupdel [user] [group]")
+    computer = current.computer
+    output = computer.delete_group(args[0], args[1])
+    if output == true then return print("Group " + args[1] + " deleted from user " + args[0])
+    if output then return print(output)
+    return print("Error: the group could not be deleted.")
+end function
 computerCommands["wifi"] = {"name":"wifi", "description":"Connect Wifi.", "args":"[device] [bssid] [essid] [password]"}
 computerCommands["wifi"]["run"] = function(args)
     if args.len < 3 then return print("Usage: wifi [device] [bssid] [essid] [password]")
@@ -517,7 +577,7 @@ computerCommands["wifi"]["run"] = function(args)
 end function
 
 shellCommands = {}
-shellCommands["shell"] = {"name":"shell", "description":"Starts terminal. Watch out for active traces.", "args":"[PID]"}
+shellCommands["shell"] = {"name":"shell", "description":"Starts terminal. Watch out for active traces.", "args":""}
 shellCommands["shell"]["run"] = function(args)
     return current.obj.start_terminal
 end function
@@ -846,7 +906,7 @@ commands["nmap"]["run"] = function(args) //thanks to Nameless for this awesome n
     toPrint = "<b>" + router.essid_name + " (" + router.bssid_name + ")</b>\nPublic IP: <b>" + router.public_ip + "</b>  Private IP: <b>" + router.local_ip + "\n\nkernel_router.so v<b>" + router.kernel_version + "</b>\n\nWhois info:\n" + whois(router.public_ip).replace(char(10), "\n</b>").replace(": ", ": <b>") + "</b>\n\nFirewall rules:\n" + format_columns((["ACTION PORT SOURCE_IP DESTINATION_IP"] + router.firewall_rules).join("\n")) + "\n\n" //nslookup, whois, scanrouter part.
     nmapInfo = "Exposed ports on router " + router.public_ip
     for port in router.used_ports
-        if is_lan_ip(targetIp) or (not port.is_closed) then accessible = "ACCESSIBLE" else accessible = "---       "
+        if port.is_closed then accessible = "---       " else accessible = "ACCESSIBLE"
         portInfo = router.port_info(port).split(" ")
         portNumber = port.port_number + ""
         nmapInfo = nmapInfo + "\n" + char(9) + accessible + " " + portNumber + (" " * (6 - portNumber.len)) + portInfo[0] + (" " * (13 - portInfo[0].len)) + portInfo[1] + (" " * (8 - portInfo[1].len)) + port.get_lan_ip
@@ -1300,6 +1360,10 @@ commands["local"]["run"] = function(args)
     globals.current.lanIp = local.lanIp
     globals.current.isLocal = local.isLocal
     return null
+end function
+commands["pwd"] = {"name":"pwd", "description":"Prints active path.", "args":""}
+commands["pwd"]["run"] = function(args)
+    return print(current.folder.path)
 end function
 commands["clear"] = {"name":"clear", "description":"Clear screen.", "args":""}
 commands["clear"]["run"] = function(args)
