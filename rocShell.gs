@@ -111,7 +111,7 @@ getCloudExploitAPI = function(metaxploit) //cloud exploit database api.
 
     return api
 end function
-getRshellAPI = function(metaxploit) //open rshell api.
+getRshellAPI = function(metaxploit)
     recursiveCheck = function(anyObject, maxDepth = -1)
         if maxDepth == 0 then return true
         if @anyObject isa map or @anyObject isa list then
@@ -173,6 +173,8 @@ getRshellAPI = function(metaxploit) //open rshell api.
             for shell in ret
                 if not host_computer(@shell) then return clearInterface(self.interface)
             end for
+        else
+            if not recursiveCheck(ret) then return clearInterface(self.interface)
         end if
         clearInterface(self.interface)
         return ret
